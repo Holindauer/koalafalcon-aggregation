@@ -37,3 +37,10 @@ For *Virtualization of the LogUp\* Pushforward*, use
       url    = {https://github.com/Holindauer/koalafalcon-aggregation/blob/main/logupstar-tensor-paper/logupstar_tensor.pdf}
     }
 
+## License
+
+The software under `koalafalcon-impl/` is licensed under the MIT License.
+
+The papers under `koalafalcon-paper/` and `logupstar-tensor-paper/` are
+licensed under the Creative Commons Attribution 4.0 International License.
+
