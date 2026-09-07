@@ -1,0 +1,36 @@
+[workspace]
+resolver = "2"
+# uncomment this when aggregation is added back... :)
+# members = ["koalafalcon", "aggregation"]
+members = ["koalafalcon"]
+
+[profile.release]
+opt-level = 3
+lto = false
+codegen-units = 16
+panic = "unwind"
+strip = false
+debug = false
+debug-assertions = false
+overflow-checks = false
+incremental = true
+rpath = false
+
+[profile.opt-compilation]
+inherits = "release"
+
+[profile.opt-runtime]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+debug = 0
+incremental = false
+
+[profile.opt-runtime.package."*"]
+opt-level = 3
+codegen-units = 1
+
+[profile.bench]
+inherits = "opt-runtime"

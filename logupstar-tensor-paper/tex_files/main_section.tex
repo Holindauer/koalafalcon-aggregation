@@ -1,0 +1,456 @@
+\section{Reducing the Pushforward Commitment Cost}
+
+Let $n=2^\nu$, $m=2^\mu$, with $d\mid\mu$. Write 
+$[n]=\{0,\ldots,n-1\}$, $[m]=\{0,\ldots,m-1\}$ over the integers, and 
+$x \in \{0,1\}^\nu$, $z \in \{0,1\}^\mu$ for their respective canonical coordinates 
+on the Boolean hypercube. 
+
+Let $I\in\mathbb{F}^n$ be the index map, and $T\in\mathbb{F}^m$ be the table.
+Consider the LogUp* pushforward $Y = I_*\operatorname{eq}_r$. Observe that $Y$ is defined in terms 
+of a Fiat-Shamir challenge $r\in\mathbb{F}^\nu$. Since $r$ is itself transcript-derived, 
+the commitment to $Y$ cannot be made before $r$ is sampled. If the table 
+$T$ is large, this commitment may become a prohibitively expensive online commitment 
+cost for the prover.
+
+
+\begin{lemma}\label{lem:lookup}\label{lem:pushforward}
+Let $n=2^\nu$, $m=2^\mu$, table $T \in \mathbb{F}^m$, indices $I \in \mathbb{F}^n$,
+and pushforward $Y = I_*\operatorname{eq}_r$ for transcript-derived challenge $r \in \mathbb{F}^{\nu}$. 
+The evaluation $\widetilde{Y}(\alpha)$ for $\alpha\in\mathbb{F}^\mu$ is equivalently represented as 
+the structured lookup $\widetilde{Y}(\alpha) = \sum_{i \in [n]} \operatorname{eq}_r[i] \cdot \operatorname{eq}_\alpha[I[i]]$
+\end{lemma}
+
+\begin{proof}
+Notice that the evaluation $\widetilde{Y}(\alpha)$ may be computed as an inner product that is subject 
+to the same pushforward-pullback duality as before
+
+$$
+\begin{aligned}
+\widetilde{Y}(\alpha) &= \langle Y, \operatorname{eq}_\alpha \rangle \\
+&= \langle I_*\operatorname{eq}_r, \operatorname{eq}_\alpha \rangle \\
+&= \langle \operatorname{eq}_r, I^* \operatorname{eq}_\alpha \rangle \\
+&= \sum_{i \in [n]} \operatorname{eq}_r[i] \cdot \operatorname{eq}_\alpha[I[i]] \\
+\end{aligned}
+$$
+
+\end{proof}
+
+
+\Cref{lem:lookup} establishes that $\widetilde{Y}(\alpha)$ may be viewed as an evaluation of a
+structured lookup into read-only memory $\operatorname{eq}_\alpha$ by indices $I[i]$. This enables 
+us to use memory checking arguments such as Shout to prove their validity.
+Let the matrix $I' \in \mathbb{F}^{n \times m}$ contain rows which are the one-hot encodings of the 
+entries $I[i]$.  Construct the following instantiation the Shout~\cite{cryptoeprint:2025/105} 
+read-check argument with $d=1$
+
+$$
+\widetilde{Y}(\alpha)
+= \sum_{x \in \{0,1\}^{\nu},\, z \in \{0,1\}^{\mu}} 
+\widetilde{\operatorname{eq}}_r(x) \cdot 
+\widetilde{\operatorname{eq}}_\alpha(z) \cdot 
+\widetilde{I}'(z, x)
+$$
+
+And adjusting to general-$d$
+
+$$
+\widetilde{Y}(\alpha) 
+= \sum_{
+    x \in \{0,1\}^{\nu}, 
+    z=(z_0, \ldots, z_{d-1}) \in (\{0,1\}^{\mu/d})^{d}
+    } 
+\widetilde{\operatorname{eq}}_r(x) \cdot 
+\widetilde{\operatorname{eq}}_\alpha(z) \cdot 
+\prod_{j=0}^{d-1} \widetilde{I}'_j(z_j, x)
+$$
+
+Described up to now is the Shout read check for the identity in \Cref{lem:lookup}. In the full Shout 
+PIOP protocol, the polynomials $\widetilde{I}'_j$ require commitments and to be checked for one-hotness 
+using the usual Shout sumcheck arguments for booleanity and Hamming weight one. Since the standard LogUp* 
+protocol includes a commitment to $I$, we demonstrate that this commitment may be replaced for just that 
+of each $\widetilde{I}'_j$.
+
+\begin{lemma}\label{lem:reconstruct}
+The $d$-dimensional one-hot matrix $(I'_0,\ldots,I'_{d-1}) \in \{0,1\}^{\mu/d}\times\{0,1\}^{\nu}$ 
+determines arbitrary evaluations of $\widetilde{I}(\beta)$ for $\beta\in\mathbb{F}^\nu$ by
+\[
+\widetilde{I}(\beta)
+=
+\sum_{j=0}^{d-1}
+\sum_{t=0}^{\mu/d-1}
+2^{j\mu/d+t}
+\sum_{z_j\in\{0,1\}^{\mu/d}}
+z_{j,t}\,\widetilde{I}'_j(z_j,\beta).
+\]
+\end{lemma}
+
+\begin{proof}
+By construction, the $d$-dimensional one-hot matrices $(I'_0,\ldots,I'_{d-1})$ are related to the one-dimensional one-hot matrix $I'$ by
+\[
+I'(z,x)=\prod_{j=0}^{d-1}I'_j(z_j,x),
+\qquad
+z=(z_0,\ldots,z_{d-1})\in(\{0,1\}^{\mu/d})^{d},
+\quad
+x\in\{0,1\}^{\nu}
+\]
+Since for all $x\in\{0,1\}^{\nu}$, $I'(\cdot,x)$ is the one-hot encoding of $I[x]\in[m]$,
+we may view the reconstruction of $I[x]$ from $I'(z,x)$ as a lookup into $[m]$ via the one-hot row 
+$I'(\cdot,x)$. In this way, an evaluation of $I$ using $I'$ may be done via
+\[
+\widetilde{I}(\beta)
+=
+\sum_{x\in\{0,1\}^{\nu},\,z\in\{0,1\}^{\mu}}
+\widetilde{\operatorname{eq}}(\beta,x)\cdot I'(z,x)\cdot z.
+\]
+Since $I'(z,x)$ evaluates to $1$ only when $z$ encodes the bit decomposition of $I[x]$,
+we may replace the scalar $z$ by its bit string recombination 
+\[
+z
+=
+\sum_{j=0}^{d-1}\sum_{t=0}^{\mu/d-1}
+2^{j\mu/d+t}z_{j,t},
+\]
+yielding
+\[
+I[x]
+=
+\sum_{z\in\{0,1\}^{\mu}}
+I'(z,x)
+\left(
+\sum_{j=0}^{d-1}\sum_{t=0}^{\mu/d-1}
+2^{j\mu/d+t}z_{j,t}
+\right).
+\]
+Substituting the tensor-product recombincation of each $I'_j$ into $I'$,
+\[
+I[x]
+=
+\sum_{z\in\{0,1\}^{\mu}}
+\left(
+\prod_{j=0}^{d-1}I'_j(z_j,x)
+\right)
+\left(
+\sum_{j=0}^{d-1}\sum_{t=0}^{\mu/d-1}
+2^{j\mu/d+t}z_{j,t}
+\right)
+\]
+Distributing and rerarrange the sums,
+\[
+I[x]
+=
+\sum_{j=0}^{d-1}\sum_{t=0}^{\mu/d-1}
+2^{j\mu/d+t}
+\sum_{z\in\{0,1\}^{\mu}}
+z_{j,t}
+\prod_{k=0}^{d-1}I'_k(z_k,x).
+\]
+The inner sum factors over $z$ as
+\[
+\sum_{z_j\in\{0,1\}^{\mu/d}}z_{j,t}I'_j(z_j,x)
+\cdot
+\prod_{k\neq j}\Bigl(\sum_{z_k\in\{0,1\}^{\mu/d}}I'_k(z_k,x)\Bigr),
+\]
+and one-hotness $\sum_{z_j\in\{0,1\}^{\mu/d}}I'_j(z_j,x)=1$ collapses every factor except the $j$-th, yielding
+\[
+I[x]
+=
+\sum_{j=0}^{d-1}\sum_{t=0}^{\mu/d-1}
+2^{j\mu/d+t}
+\sum_{z_j\in\{0,1\}^{\mu/d}}
+z_{j,t}\,I'_j(z_j,x)
+\]
+Taking the multilinear extension in $x$ and evaluating at $\beta\in\mathbb{F}^\nu$ gives the claim.
+\end{proof}
+
+
+\begin{theorem}\label{thm:reconstruct-sumcheck}\label{thm:reconstruction}
+Given commitments to $(I'_0,\ldots,I'_{d-1})$, a claim $v=\widetilde{I}(\beta)$ for $\beta\in\mathbb{F}^\nu$ can be reduced by a $(\mu/d)$-round sumcheck to evaluation claims on the committed $I'_j$ at a common random point $\rho\in\mathbb{F}^{\mu/d}$.
+\end{theorem}
+
+\begin{proof}
+Starting from \Cref{lem:reconstruct} and reordering the sums,
+\[
+\widetilde{I}(\beta)
+=
+\sum_{z\in\{0,1\}^{\mu/d}}
+\left(\sum_{t=0}^{\mu/d-1}2^{t}z_{t}\right)
+\left(\sum_{j=0}^{d-1}2^{j\mu/d}\,\widetilde{I}'_j(z,\beta)\right).
+\]
+Run sumcheck over $z$. If it terminates at $\rho\in\mathbb{F}^{\mu/d}$, the terminal claim is
+\[
+\left(\sum_{t=0}^{\mu/d-1}2^{t}\rho_{t}\right)
+\left(\sum_{j=0}^{d-1}2^{j\mu/d}\,\widetilde{I}'_j(\rho,\beta)\right),
+\]
+which reduces the original claim to
+$\widetilde{I}'_j(\rho,\beta)$ for $j\in[d]$,
+all at the same point and therefore batch-openable with the underlying PCS.
+The summed polynomial has individual degree at most $2$, giving sumcheck soundness error at most $\frac{2\mu/d}{|\mathbb{F}|}$.
+\end{proof}
+
+\begin{theorem}\label{thm:virtualize}
+Let $Y = I_*\operatorname{eq}_r$, and let $(I'_0,\ldots,I'_{d-1})$ be a valid committed $d$-dimensional
+one-hot representation of $I$. Then the commitments to the $I'_j$ are sufficient to replace both the 
+commitments on $I$ and $Y$.
+\end{theorem}
+
+\begin{proof}
+By \Cref{lem:lookup} and the Shout read-check construction immediately following it, every terminal LogUp* evaluation claim
+\[
+\widetilde{Y}(\alpha)
+=
+\widetilde{I_*\operatorname{eq}_r}(\alpha)
+\]
+can be proven directly from the committed $I'_j$, so no independent commitment to $Y$ is required.
+By \Cref{lem:reconstruct}, arbitrary evaluations $\widetilde{I}(\beta)$ are determined by the tensorized representation.
+By \Cref{thm:reconstruction}, each such claim $\widetilde{I}(\beta)$ can be reduced by reconstruction sumcheck to evaluation claims
+$\widetilde{I}'_j(\rho,\beta)$
+on the already committed $I'_j$, so no independent commitment to $I$ is required.
+Thus
+\[
+\operatorname{Com}(I'_0),\ldots,\operatorname{Com}(I'_{d-1})
+\Rightarrow
+\text{all required $I$-evaluation claims}
+\]
+and
+\[
+\operatorname{Com}(I'_0),\ldots,\operatorname{Com}(I'_{d-1})
+\Rightarrow
+\text{all required virtual $Y$-evaluation claims}.
+\]
+The ordinary LogUp* commitment to $I$ and the transcript-dependent commitment to $Y=I_*\operatorname{eq}_r$ may both be omitted and replaced by the commitments to the tensorized one-hot representation.
+\end{proof}
+
+
+\begin{figure}[!htbp]
+\setlength{\FrameSep}{4pt}
+\begin{framed}
+
+\noindent\textbf{Protocol:}
+Let $n=2^\nu$, $m=2^\mu$ with $d\mid\mu$.
+Write $Y:=I_*\operatorname{eq}_r$, and let $I'_j\in\mathbb{F}^{n\times m^{1/d}}$ for $j\in\{0,\ldots,d-1\}$
+be the $d$-dimensional one-hot decomposition of the witness index map $I$.
+The table $T$ may be committed in preprocessing.
+The commitments $\operatorname{Com}(I'_0),\ldots,\operatorname{Com}(I'_{d-1})$ are fixed before $r$.
+
+\begin{itemize}
+\item
+In the witness-commitment phase, before the transcript-derived challenge $r$,
+P commits to $I'_0,\ldots,I'_{d-1}$ as the canonical committed representation of $I$.
+There is no commitment to $Y$.
+P and V also run the standard Shout / Twist-and-Shout booleanity and Hamming-weight-one checks
+on each $I'_j$~\cite[Figure~8]{cryptoeprint:2025/105}, reducing to evaluation claims on the $I'_j$
+that are deferred to the final batched opening.
+
+\item
+After $r$ is sampled, P runs ordinary LogUp* only until its terminal evaluation claims are obtained,
+treating $Y=I_*\operatorname{eq}_r$ as virtual throughout.
+This yields the usual final evaluation claims on $Y$ and $T$, together with any evaluation
+claims on $I$.
+
+\item
+For every terminal claim $v_Y=\widetilde{Y}(\alpha)$ with $\alpha\in\mathbb{F}^\mu$,
+P and V discharge it with the Shout read-check
+\[
+v_Y
+=
+\sum_{\substack{
+    x \in \{0,1\}^{\nu} \\
+    z=(z_0,\ldots,z_{d-1})\in(\{0,1\}^{\mu/d})^{d}
+    }}
+\widetilde{\operatorname{eq}}_r(x)\,
+\widetilde{\operatorname{eq}}_{\alpha}(z)\,
+\prod_{j=0}^{d-1}\widetilde{I}'_j(z_j,x),
+\]
+reducing to evaluation claims
+$v_{I,j}:=\widetilde{I}'_j(\rho_j,\rho_x)$
+for $j\in\{0,\ldots,d-1\}$,
+where $\rho_x\in\mathbb{F}^{\nu}$ and each $\rho_j\in\mathbb{F}^{\mu/d}$.
+Writing $\rho_z=(\rho_0,\ldots,\rho_{d-1})\in(\mathbb{F}^{\mu/d})^{d}$,
+V checks the final sumcheck claim is consistent with
+\(
+\widetilde{\operatorname{eq}}_r(\rho_x)\cdot
+\widetilde{\operatorname{eq}}_{\alpha}(\rho_z)\cdot
+\prod_{j=0}^{d-1}v_{I,j},
+\)
+where $\widetilde{\operatorname{eq}}_r(\rho_x)$ and $\widetilde{\operatorname{eq}}_{\alpha}(\rho_z)$ are verifier-computed.
+
+\item
+For every terminal LogUp* claim $v_I=\widetilde{I}(\beta)$ with $\beta\in\mathbb{F}^\nu$,
+P and V discharge it with the reconstruction sumcheck of \Cref{thm:reconstruction}.
+The sumcheck terminates at a common $\zeta\in\mathbb{F}^{\mu/d}$,
+reducing to evaluation claims
+$v^{\mathrm{rec}}_{I,j}:=\widetilde{I}'_j(\zeta,\beta)$
+for all $j\in\{0,\ldots,d-1\}$.
+
+\item
+P batch-opens all resulting evaluation claims on the already committed $I'_j$
+together with the remaining LogUp* claims on $T$.
+V checks the openings are consistent with the claimed evaluations.
+\end{itemize}
+\end{framed}
+\caption{Virtualizing LogUp*'s terminal $I_*\operatorname{eq}_r$ evaluations.}
+\label{fig:protocol}
+\end{figure}
+
+\begin{theorem}\label{thm:soundness}
+The protocol of \Cref{fig:protocol} is perfectly complete.
+Let $q_Y$ be the number of independently invoked Shout read-checks for terminal $Y$-evaluations,
+and $q_I$ the number of reconstruction sumchecks for terminal $I$-evaluations.
+Identifying Shout's memory size $K$ with $m=2^\mu$ and its number of reads $T$ with $n=2^\nu$,
+the soundness error is at most
+\[
+\epsilon_{\mathrm{VirtualLogUp*}}
+\le
+\epsilon_{\mathrm{id}}
++
+\epsilon_{\mathrm{LogUpGKR}}
++
+q_Y\epsilon_{\mathrm{Shout}}
++
+\epsilon_{\mathrm{1Hot}}
++
+q_I\frac{2\mu/d}{|\mathbb{F}|}
++
+\epsilon_{\mathrm{PCS}},
+\]
+where
+$\epsilon_{\mathrm{id}}=\frac{n+m}{|\mathbb{F}|}$
+is the soundness error of the LogUp* pushforward rational-identity check
+(Lemma~2 of~\cite{cryptoeprint:2025/946}),
+$\epsilon_{\mathrm{LogUpGKR}}$ is the residual soundness of the remaining LogUp-GKR and
+$\langle T,Y\rangle$-sumcheck components (left symbolic),
+$\epsilon_{\mathrm{Shout}}=\frac{(d+2)\nu+2\mu}{|\mathbb{F}|}$
+is the core read-check error of Figure~7
+(Theorem~3 of~\cite{cryptoeprint:2025/105}),
+$\epsilon_{\mathrm{1Hot}}=\frac{4d\nu+6\mu}{|\mathbb{F}|}$
+is the one-hot validity error of Figure~8
+(Theorem~3 of~\cite{cryptoeprint:2025/105}),
+counted once because the $I'_j$ are committed and checked a single time before $r$,
+and $\epsilon_{\mathrm{PCS}}$ is the soundness error of the underlying batched PCS openings, counted once.
+For the special case $d=1$, Theorem~2 of~\cite{cryptoeprint:2025/105} already packages the $d=1$ read-check together with one-hot validity at error $\frac{6\mu+4\nu}{|\mathbb{F}|}$;
+that combined bound must not be added on top of $\epsilon_{\mathrm{1Hot}}$.
+\end{theorem}
+
+\begin{proof}
+Acceptance of the one-hot checks implies that $(I'_0,\ldots,I'_{d-1})$ define a unique index map $I$.
+Acceptance of the reconstruction sumchecks of \Cref{thm:reconstruction} then implies that every claimed $\widetilde{I}(\beta)$ is an evaluation of that $I$.
+Acceptance of the Shout read-checks, using \Cref{lem:lookup}, implies that every claimed
+\[
+\widetilde{Y}(\alpha)
+=
+\widetilde{I_*\operatorname{eq}_r}(\alpha)
+\]
+is the corresponding virtual pushforward evaluation of the same $I$.
+Hence the remaining transcript is equivalent to a valid LogUp* transcript for the induced $I$ and $Y=I_*\operatorname{eq}_r$,
+except that $I$ and $Y$ are represented virtually through the committed $I'_j$
+(\Cref{thm:virtualize}).
+A union bound over the isolated identity error $\epsilon_{\mathrm{id}}$,
+the residual LogUp-GKR error,
+the $q_Y$ core Shout read-checks,
+the single one-hot check,
+the $q_I$ degree-at-most-$2$ reconstruction sumchecks of \Cref{thm:reconstruction},
+and the PCS openings yields the stated bound.
+\end{proof}
+
+\subsection{Cost comparison}
+
+The index map $I$ is part of the witness and is not preprocessing-known.
+The shared commitment to $T\in\mathbb{F}^m$ may be preprocessing-known and is kept outside the main comparison below.
+($Y$ is transcript-derived and therefore cannot be committed before $r$, which motivates the construction, but timing is not the cost metric of this subsection.)
+
+\begin{theorem}\label{thm:cost}
+Let $n=2^\nu$, $m=2^\mu$, and $d\mid\mu$.
+Ignoring the shared commitment to $T$, ordinary LogUp* commits to
+$\operatorname{Com}(I)$ with $I\in\mathbb{F}^n$ and
+$\operatorname{Com}(Y)$ with $Y=I_*\operatorname{eq}_r\in\mathbb{F}^m$.
+The virtualized construction of \Cref{fig:protocol} replaces both with
+$\operatorname{Com}(I'_0),\ldots,\operatorname{Com}(I'_{d-1})$,
+$I'_j\in\mathbb{F}^{n\times m^{1/d}}$.
+This is the commitment-profile transformation
+\[
+\boxed{
+1\text{ polynomial of size }n
++
+1\text{ polynomial of size }m
+\;\longrightarrow\;
+d\text{ polynomials, each of size }nm^{1/d}.
+}
+\]
+Let $C_{\mathrm{com}}(N)$ be the cost of committing to a size-$N$ polynomial and
+$C_{\mathrm{open}}(N,q)$ the cost of a $q$-point batched opening of a size-$N$ polynomial.
+The affected commitment and opening costs transform from
+$C_{\mathrm{com}}(n)+C_{\mathrm{com}}(m)+C_{\mathrm{open}}(n,q_I)+C_{\mathrm{open}}(m,q_Y)$
+to
+$d\,C_{\mathrm{com}}(nm^{1/d})+C_{\mathrm{open}}(nm^{1/d},q')$,
+together with $q_I$ reconstruction sumchecks of $\mu/d$ rounds and individual degree at most $2$,
+each terminating in $d$ batchable evaluations of the $I'_j$,
+and $q_Y$ Shout read-checks, each terminating in evaluations of the committed $I'_j$.
+\end{theorem}
+
+\begin{proof}
+Immediate from \Cref{thm:virtualize}, \Cref{thm:reconstruction}, and the Shout read-check of \Cref{lem:lookup}.
+\end{proof}
+
+The tensorized representation has smaller aggregate polynomial length than the two ordinary polynomials if and only if
+$dnm^{1/d}<n+m$.
+In the regime $m\gg n$ this is approximately $n<\frac{m^{1-1/d}}{d}$.
+This condition is not necessary for the construction to be useful:
+even when it does not reduce aggregate polynomial length, eliminating the size-$m$ pushforward in favor of a structured read-check may still be advantageous.
+The parameter $d$ trades $|I'_j|=nm^{1/d}$, the number of committed polynomials, reconstruction depth $\mu/d$, and Shout cost.
+We do not claim a universally optimal $d$.
+Representative sizes for $n=2^{10}$ appear in \Cref{tab:commitment-sizes}.
+
+\begin{table}[!htbp]
+\centering
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+& Ordinary LogUp* & Virtualized LogUp* \\
+\midrule
+Table commitments
+& $1\times T,\ |T|=m$
+& $1\times T,\ |T|=m$ \\
+Index/pushforward commitments
+&
+$\begin{array}{c}
+1\times I,\ |I|=n \\
+1\times Y,\ |Y|=m
+\end{array}$
+&
+$\begin{array}{c}
+d\times I'_j \\
+|I'_j|=nm^{1/d}
+\end{array}$
+\\
+\bottomrule
+\end{tabular}
+\caption{Polynomial commitments.
+The shared commitment to $T$ is displayed for completeness and is excluded from \Cref{thm:cost}.}
+\label{tab:commit-profile}
+\end{table}
+
+The corresponding proof-side tradeoff, separate from the commitment profile above, is as follows.
+
+\begin{table}[!htbp]
+\centering
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+& Ordinary LogUp* & Virtualized LogUp* \\
+\midrule
+$\widetilde{T}(\gamma)$
+& PCS opening of committed $T$
+& PCS opening of committed $T$ \\
+$\widetilde{I}(\beta)$
+& direct PCS opening
+& $(\mu/d)$-round reconstruction sumcheck, then batched openings of the $I'_j$ \\
+$\widetilde{Y}(\alpha)$
+& PCS opening of committed $Y$
+& Shout read-check, then batched openings of the $I'_j$ \\
+\bottomrule
+\end{tabular}
+\caption{Proof-side cost of discharging terminal evaluation claims.}
+\label{tab:proof-cost}
+\end{table}
+
+The virtualized $Y$-evaluation inherits the prover work of the Shout read-check, which we leave qualitative here.

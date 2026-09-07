@@ -1,0 +1,280 @@
+\section{$q$-Dependence Audit of CoreFalcon+ Security Bound}
+
+This section re-derives the security bound for CoreFalcon+, examining term-by-term 
+where exactly the modulus plays a role in their argument. The derivations in this 
+audit originate from the CoreFalcon+ paper.
+
+\paragraph{\texorpdfstring{\(r_u\): random-oracle / syndrome
+uniformity}{r\_u: random-oracle / syndrome uniformity}}\label{r_u-random-oracle-syndrome-uniformity}
+
+\(r_u\) controls the Rényi divergence between the uniform distribution
+\(U(R_q)\) and the distribution of the programmed syndrome
+\(s_1 + s_2 h \bmod q\) for Gaussian \(s_1, s_2 \sim D_{R,s}\):
+
+\[
+r_u = \max_{(\cdot,h)\in \mathrm{TpdGen}} R_{a_u}(P \,\|\, Q_h), \qquad P = U(R_q).
+\]
+
+Where \(Q_h\) is the distribution of \(s_1 + s_2\cdot h \bmod q\) with
+\(s_1, s_2 \sim D_{R, s}\) and signature standard deviation
+
+\[
+s = \frac{1}{\pi} \sqrt{\frac{\ln\!\left(4n\left(1+\frac{1}{\epsilon}\right)\right)}{2}} \cdot \alpha \sqrt{q}.
+\]
+
+By \hyperref[cor:ru-renyi]{Corollary~\ref*{cor:ru-renyi}}~\cite{Fouque2024CoreFalcon}
+(proof in Appendix B.3 of \cite{Fouque2024CoreFalcon}), with \(P = U(R_q)\) and
+\(Q\) the distribution of \(u + v \cdot h \mod q\) for \(u, v \sim D_{R,s}\),
+the syndrome-uniformity R\'enyi divergence \(R_a(P \,\|\, Q)\) obeys the bound
+stated there. The only nontrivial pre-condition behind it is 
+\(s \ge \eta_{\epsilon}(\Lambda_{h,q})\). Bases \(B_h\) and \(B_{f,g}\)
+of \(\Lambda_{h, q}\) are defined by
+\(TpdGen(\alpha, q) \rightarrow (f, g, F, G, h)\) where
+\(h \in R_q \setminus \{0\}\) and \((f, g, F, G) \in R^4\). The trapdoor
+basis satisfies \(||B_{f,g}||_{GS} \le \alpha\sqrt{q}\). Proof 3 then resolves this condition, confirming
+
+\[
+r_u \lesssim 1 + \frac{2a_u\epsilon^2}{(1-\epsilon)^2}.
+\]
+
+Once the smoothing condition holds, this bound has no remaining
+\(q\)-dependence beyond the cyclotomic ring setting and \(||B_{f,g}||_{GS} \le \alpha\sqrt{q}\) for 
+Proof 3 to apply.
+
+\paragraph{\texorpdfstring{\(r_p\): sampler output versus ideal
+Gaussian}{r\_p: sampler output versus ideal Gaussian}}\label{r_p-sampler-output-versus-ideal-gaussian}
+
+\(r_p\) is the Rényi divergence between the pre-image sampler
+output \(\mathrm{PreSmp}(B,s,(c,0))\) and the ideal discrete Gaussian
+\(D_{\Lambda,s}\)
+
+\[
+r_p = \max_{(B,\cdot)\in \mathrm{TpdGen},\, c\in R_q} R_{a_p}\!\left( \mathrm{PreSmp}(B,s,(c,0)) \,\middle\|\, D_{\Lambda,s} \right),
+\]
+
+where \(\Lambda = \Lambda(B)_{(c,0)}\) is the coset obtained by shifting
+the lattice by the syndrome \((c,0)\). By
+\hyperref[cor:rp-renyi]{Corollary~\ref*{cor:rp-renyi}}~\cite{Fouque2024CoreFalcon},
+for \(s \ge \eta_\epsilon(\mathbb{Z}^{2n}) \cdot ||B||_{GS}\) and arbitrary
+syndrome \(c \in R_q\), the R\'enyi divergence is
+\(R_a(\mathrm{PreSmp}(B,s,(c,0)) \,\|\, D_{\Lambda,s}) \lesssim 1 + 2a\epsilon^2\).
+This pre-condition is demonstrated to be the case in Proof 3 for the CoreFalcon+ parameter formula 
+of $s$, therefore $r_p \lesssim 1 + 2a_p\epsilon^2$ applies in our case.
+Beyond this, \hyperref[cor:rp-renyi]{Corollary~\ref*{cor:rp-renyi}} makes no reference to \(q\), 
+depending only on \(n\), \(\epsilon\), and \(||B||_{GS}\). Though it remains a concern whether the 
+actual sampler implementation still behaves as expected with 53-bit floating point arithmetic with 
+the larger 31-bit modulus. 
+
+\paragraph{\texorpdfstring{\(p_{\mathrm{PreSmp},\beta}\): sampler
+success / rejection
+probability}{p\_\{\textbackslash mathrm\{PreSmp\},\textbackslash beta\}: sampler success / rejection probability}}\label{p_mathrmpresmpbeta-sampler-success-rejection-probability}
+
+\(p_{\mathrm{PreSmp},\beta}\) is the worst-case probability of sampling
+\((s_1, s_2) \in R^2\) with \(||(s_1,s_2)||_2 \le \beta\) from the FFO
+sampler. The derivation below is found in appendix~E1 of
+\cite{Fouque2024CoreFalcon}. We walk through it here to understand if at any point we invoke some property of $q$.
+At a high level it proceeds in four steps:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Compare \(\mathrm{PreSmp}\) to \(D_{\Lambda,s}\) using the
+  relative-error bound (\hyperref[lem:ffo-relerror]{Lemma~\ref*{lem:ffo-relerror}}~\cite{Fouque2024CoreFalcon}).
+\item
+  Apply the Gaussian tail bound to \(D_{\Lambda+t,s}\) (\hyperref[lem:gauss-tail]{Lemma~\ref*{lem:gauss-tail}}~\cite{Fouque2024CoreFalcon}).
+\item
+  Use smoothing (\hyperref[lem:gauss-mass]{Lemma~\ref*{lem:gauss-mass}}~\cite{Fouque2024CoreFalcon}) to bound
+  \(\rho_s(\Lambda)/\rho_s(\Lambda+t)\).
+\item
+  Substitute \(\beta = \tau s \sqrt{2n}\), causing the \(s\)-scale, and
+  hence the \(q\)-scale, to cancel.
+\end{enumerate}
+
+Let
+
+\[
+p_{\mathrm{PreSmp},\beta}
+:=
+\min_{(B,\cdot)\in \mathrm{TpdGen},\, c\in R_q}
+\Pr_{(s_1,s_2)\gets_{\$}\, \mathrm{PreSmp}(B,s,(c,0))}
+\left[
+\left\|(s_1,s_2)\right\|_2 \le \beta
+\right]
+\]
+
+Take the complement
+
+\[
+\begin{aligned}
+p_{\mathrm{PreSmp},\beta}
+:=
+\min_{(B,\cdot)\in \mathrm{TpdGen},\, c\in R_q}
+1 -
+\Pr_{(s_1,s_2)\gets_{\$}\, \mathrm{PreSmp}(B,s,(c,0))}
+\!\left[\left\|(s_1,s_2)\right\|_2 > \beta\right]
+\end{aligned}
+\]
+
+By \hyperref[lem:ffo-relerror]{Lemma~\ref*{lem:ffo-relerror}}~\cite{Fouque2024CoreFalcon},
+once \(s \ge \eta_\epsilon(\mathbb{Z}^{2n}) \cdot ||B||_{GS}\) the relative error
+\(\delta_{\mathrm{RE}}(\mathrm{PreSmp}(B,s,(c,0)),\, D_{\Lambda,s})\) is bounded by
+approximately \(2\epsilon\).
+
+This relative error quantifies the error in treating the discrete
+Gaussian \(D_{\Lambda,s}\) as the same distribution as the distribution
+of the outputs of \(\mathrm{PreSmp}(B,s,(c,0))\) over the lattice
+\(\Lambda\), and is bounded by approximately \(2\epsilon\). That is to
+say, we can let \(D_{\Lambda,s}\) stand in for the distribution of
+\(\mathrm{PreSmp}(B,s,(c,0))\) up to a relative error bounded by
+\(2\epsilon\).
+
+\hyperref[lem:relerror-tail]{Lemma~\ref*{lem:relerror-tail}}~\cite{Fouque2024CoreFalcon}
+transfers a relative-error bound \(\delta_{RE}(P,Q) = \delta\) between two
+distributions on \(\mathbb{Z}^n\) into the tail bound
+\(\Pr_{x \leftarrow P}[\|x\|_2 > \beta] \le \Pr_{x \leftarrow Q}[\|x\|_2 > \beta]\,(1+\delta)\)
+for any \(\beta \ge 0\).
+
+Then, by application of \hyperref[lem:ffo-relerror]{Lemma~\ref*{lem:ffo-relerror}}
+to \hyperref[lem:relerror-tail]{Lemma~\ref*{lem:relerror-tail}}, we have for
+
+\[
+\delta_{\mathrm{RE}}\!\left(
+    \mathrm{PreSmp}(B,s,(c,0)),\, D_{\Lambda(B)+t,s}
+\right)
+\lesssim
+2 \epsilon
+\]
+
+\[
+\Pr_{(s_1, s_2) \leftarrow \mathrm{PreSmp}(B,s,(c,0))}\!\left[\|(s_1,s_2)\|_2 > \beta\right]
+\le
+\Pr_{(s_1, s_2) \leftarrow D_{\Lambda(B)+t,s}}\!\left[\|(s_1,s_2)\|_2 > \beta\right] \cdot (1+2\epsilon),
+\qquad
+t \in \Lambda(B)_{(c,0)}.
+\]
+
+Application to our current bound gives
+
+\[
+\begin{aligned}
+&\min_{(B,\cdot)\in \mathrm{TpdGen},\, c\in R_q}
+1 -
+\Pr_{(s_1,s_2)\gets_{\$}\, \mathrm{PreSmp}(B,s,(c,0))}
+\!\left[\|(s_1,s_2)\|_2 > \beta\right]
+\\
+&\qquad\gtrsim
+\min_{(B,\cdot)\in \mathrm{TpdGen},\, c\in R_q}
+\left(
+1 -
+\Pr_{(s_1,s_2)\leftarrow D_{\Lambda(B)_{(c,0)},\, s}}
+\!\left[\|(s_1,s_2)\|_2 > \beta\right]
+\cdot (1+2\epsilon)
+\right)
+\end{aligned}
+\]
+
+By \hyperref[lem:gauss-tail]{Lemma~\ref*{lem:gauss-tail}}~\cite{Fouque2024CoreFalcon},
+the discrete Gaussian \(D_{\Lambda+t,s}\) satisfies the tail bound
+\(\Pr_{z \leftarrow D_{\Lambda + t,\, s}}[\|z\|_2 > \tau s \sqrt{n}]
+\le \frac{\rho_s(\Lambda)}{\rho_s(\Lambda + t)}(\sqrt{e^{1 - \tau^2}\tau^2})^n\).
+
+Applying to our current bound, and since the parameter
+\(\beta = \tau s \sqrt{2n}\), we have
+
+\[
+\begin{aligned}
+&\min_{(B,\cdot)\in \mathrm{TpdGen},\, c\in R_q}
+\left(
+1 -
+\Pr_{(s_1,s_2)\leftarrow D_{\Lambda(B)_{(c,0)},\, s}}
+\!\left[\|(s_1,s_2)\|_2 > \beta\right]
+\cdot (1+2\epsilon)
+\right)
+\\
+&\qquad\gtrsim
+\min_{(B,\cdot)\in \mathrm{TpdGen},\, c\in R_q}
+\left(
+1 -
+\frac{\rho_s(\Lambda(B))}{\rho_s\!\left(\Lambda(B)+t\right)}
+\cdot
+\left(\sqrt{e^{1-\tau^2}\tau^2}\right)^{2n}
+\cdot
+(1+2\epsilon)
+\right),
+\qquad t \in \Lambda(B)_{(c,0)}.
+\end{aligned}
+\]
+
+By \hyperref[lem:gauss-mass]{Lemma~\ref*{lem:gauss-mass}}~\cite{Fouque2024CoreFalcon},
+for \(s \ge \eta_\epsilon(\Lambda)\) the Gaussian mass satisfies
+\(\rho_{s,c}(\Lambda) \in [\,1-\epsilon,\;1+\epsilon\,] \cdot \frac{(\sqrt{2\pi} \cdot s)^n}{\det(\Lambda)}\).
+
+Since \(\Lambda(B) + t\) is a translate (coset) of \(\Lambda(B)\), the
+covolume is unchanged by translation, so
+\(\det(\Lambda(B)+t) = \det(\Lambda(B))\), and
+\(s \ge \eta_\epsilon(\Lambda(B))\) by Proof 3. This gives
+
+\[
+p_{\mathrm{PreSmp},\beta} \ge
+1 -
+\left(
+\frac{1+\epsilon}{1-\epsilon}
+\cdot
+\left(
+\sqrt{e^{1-\tau^2} \tau^2}
+\right)^{2n}
+\cdot
+(1+2\epsilon)
+\right).
+\]
+
+% TODO: I think it would be good to explain the intermediate process
+% of this proof that were implicit in appendix E1 to make sure it still
+% applies in our context. But the algebra is the same as theirs so it
+% probably can just be reduced to that proof. Probably earlier too. In
+% fact, we probably can just isolate the sections of the re-derivations
+% where the only remaining steps are just algebraic manipulations and can
+% be used directly from existing proofs.
+
+This lower bound depends only on \(n\), \(\tau\), and \(\epsilon\), not
+on \(q\). Since \(\beta\) is always \(\tau s \sqrt{2n}\), increasing
+\(q\) increases both \(s\) and \(\beta\) proportionally, and the
+\(s\)-scale cancels at the \hyperref[lem:gauss-tail]{Lemma~\ref*{lem:gauss-tail}} step.
+
+\paragraph{\texorpdfstring{Optimal Rényi orders
+\(a_u, a_p, C_s\)}{Optimal Rényi orders a\_u, a\_p, C\_s}}\label{optimal-ruxe9nyi-orders-a_u-a_p-c_s}
+
+All choices
+\(a_u, a_p \in \mathbb{R}^{\ge 1}, C_s \in \mathbb{N}^{\ge 1}\) are by
+definition proof constants and do not depend on \(q\).
+
+The Rényi orders \(a_u\) and \(a_p\) are downstream of the bounds
+already established for \(r_u\) and \(r_p\). Once \(r_u\) and \(r_p\)
+are bounded by expressions depending only on \(\epsilon\) and the chosen
+orders, optimizing the orders to minimize the overall loss introduces no
+new direct dependence on \(q\).
+Appendix~E2 of
+\cite{Fouque2024CoreFalcon}
+reports the optimal \(a_p\) as
+
+\[
+a_p =
+\frac{
+\lambda \epsilon^2 \ln(4)
++
+\sqrt{
+8C_s\lambda\epsilon^2\ln(2)
++
+\lambda^2\epsilon^4\ln^2(4)
+}
+}{
+4C_s\epsilon^2
+}
+\]
+
+The optimal \(a_u\) is determined analogously from the \(r_u\) bound.
+Conceptually, both \(a_u\) and \(a_p\) depend on \(\lambda\),
+\(\epsilon\), \(C_s\), and the Rényi-loss optimization, not directly on
+\(q\). Numerical values are reported under
+\hyperref[concrete-parameter-choices]{Concrete Parameter Choices}.

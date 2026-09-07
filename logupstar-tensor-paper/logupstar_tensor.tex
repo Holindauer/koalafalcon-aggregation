@@ -1,0 +1,22 @@
+% !TEX program = pdflatex
+% !BIB program = bibtex
+
+\input{tex_files/preamble}
+
+\begin{document}
+
+\maketitle
+
+\input{tex_files/title_abstract}
+
+\tableofcontents
+
+\input{tex_files/introduction}
+\input{tex_files/main_section}
+
+\FloatBarrier
+\nocite{*}
+\bibliographystyle{plainurl}
+\bibliography{logupstar_tensor}
+
+\end{document}

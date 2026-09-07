@@ -1,0 +1,88 @@
+
+--------------------------------
+Running FN-DSA signature benchmarks
+  crate=/Users/hol/pursuits/repos/lab/impl/koalafalcon/koalafalcon
+  impl=https://github.com/pornin/rust-fn-dsa
+  profile=opt-runtime  RUSTFLAGS=-C target-cpu=native
+  hw_threads=16
+  n=512 1024
+--------------------------------
+
+Building fn_dsa_signature...
+   Compiling zeroize v1.9.0
+   Compiling fn-dsa-comm v0.4.0
+   Compiling ark-ff v0.5.0
+   Compiling merlin v3.0.0
+   Compiling fn-dsa-sign v0.4.0
+   Compiling fn-dsa-kgen v0.4.0
+   Compiling fn-dsa-vrfy v0.4.0
+   Compiling fn-dsa v0.4.0
+   Compiling koalafalcon v0.1.0 (/Users/hol/pursuits/repos/lab/impl/koalafalcon/koalafalcon)
+warning: function `mod_koala_bear_u64` is never used
+  --> src/algebra/koalabear_field.rs:18:8
+   |
+18 | pub fn mod_koala_bear_u64(value: u64) -> u32 {
+   |        ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `mod_koala_bear_u32` is never used
+  --> src/algebra/koalabear_field.rs:24:8
+   |
+24 | pub fn mod_koala_bear_u32(mut value: u32) -> u32 {
+   |        ^^^^^^^^^^^^^^^^^^
+
+warning: `koalafalcon` (lib) generated 2 warnings
+    Finished `opt-runtime` profile [optimized] target(s) in 9.20s
+
+================================
+FN-DSA / Falcon-512
+================================
+
+single-threaded signature performance (n=512):
+parameter set: FN-DSA / Falcon-512
+message:       "hello, koala falcon" (19 bytes)
+signatures:    131072
+threads:       1
+keygen:        0.010 s
+sign total:    13.601 s
+sign rate:     9637 signatures/s
+verify total:  1.507 s
+verify rate:   86999 verifies/s
+
+multi-threaded signature performance (n=512):
+parameter set: FN-DSA / Falcon-512
+message:       "hello, koala falcon" (19 bytes)
+signatures:    131072
+threads:       16
+keygen:        0.002 s
+sign total:    1.162 s
+sign rate:     112799 signatures/s
+verify total:  0.129 s
+verify rate:   1017779 verifies/s
+
+================================
+FN-DSA / Falcon-1024
+================================
+
+single-threaded signature performance (n=1024):
+parameter set: FN-DSA / Falcon-1024
+message:       "hello, koala falcon" (19 bytes)
+signatures:    131072
+threads:       1
+keygen:        0.011 s
+sign total:    27.025 s
+sign rate:     4850 signatures/s
+verify total:  2.980 s
+verify rate:   43987 verifies/s
+
+multi-threaded signature performance (n=1024):
+parameter set: FN-DSA / Falcon-1024
+message:       "hello, koala falcon" (19 bytes)
+signatures:    131072
+threads:       16
+keygen:        0.013 s
+sign total:    2.140 s
+sign rate:     61255 signatures/s
+verify total:  0.247 s
+verify rate:   531447 verifies/s

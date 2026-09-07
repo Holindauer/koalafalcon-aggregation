@@ -1,0 +1,639 @@
+\section{KoalaFalcon}
+
+\subsection{Core Construction} 
+
+KoalaFalcon is a variant of CoreFalcon+ (itself a variant of Falcon 
+with a slight modification to better enable security analysis with Rényi divergence). 
+The primary algorithmic difference in KoalaFalcon is to use Poseidon as the hash function 
+instead of SHAKE. Beyond this, KoalaFalcon fixes the modulus $q$ to the KoalaBear prime. 
+To support the KoalaBear prime, we set the following formulaic parameters from CoreFalcon+, 
+explaining the rationale and applicability of this choice in \hyperref[sqrtq-scaling-argument]{\ref*{sqrtq-scaling-argument}}:
+\begin{align*}
+s &= \frac{1}{\pi} \sqrt{\frac{\ln\!\left(4n\left(1+\frac{1}{\epsilon}\right)\right)}{2}} \cdot \alpha \sqrt{q}, &
+\beta &= \tau s \sqrt{2n}.
+\end{align*}
+
+% TODO cite corefalcon+
+
+KoalaFalcon's signing and verification algorithms are depicted in
+\hyperref[fig:koalafalcon-construction]{Figure~\ref*{fig:koalafalcon-construction}}, 
+with two concrete parameter sets defined for KoalaFalcon in 
+\hyperref[tab:koalafalcon-parameters]{Table~\ref*{tab:koalafalcon-parameters}}.
+Algorithmically, the primary difference between CoreFalcon+ and KoalaFalcon is 
+in the hash function. KoalaFalcon is able to use Poseidon natively because it 
+fixes $q$ as the KoalaBear prime, supporting pre-existing Poseidon instantiations 
+under the same modulus. Messages are hashed into $R_q$ elements by taking repeated Poseidon 
+permutations, collecting the sponge state between each invocation until $n$ 
+coefficients have been collected. The rest remains algorithmically unchanged in 
+KoalaFalcon aside from re-parameterization.
+
+\begin{figure}[!htbp] \label{koalafalcon-construction}
+  \centering
+  \setlength{\fboxsep}{7pt}
+  \fbox{%
+  \begin{minipage}{0.94\textwidth}
+  \renewcommand{\arraystretch}{0.95}
+  \begin{tabular}{@{\hspace{0.5em}}>{\raggedright\arraybackslash}p{\dimexpr0.5\linewidth-0.85em-0.5\arrayrulewidth\relax}@{\hspace{0.35em}}|@{\hspace{0.35em}}>{\raggedright\arraybackslash}p{\dimexpr0.5\linewidth-0.85em-0.5\arrayrulewidth\relax}@{\hspace{0.5em}}}
+  \multicolumn{2}{@{}>{\hspace{0.5em}\raggedright\arraybackslash}p{\dimexpr\linewidth-1em\relax}@{}}{%
+    \vspace{0.15em}
+    \algheading{Gen}{}
+    \algline{01}{$(f,g,F,G,h) \sample \operatorname{TpdGen}(\alpha,q)$}
+    \algline{02}{$B \coloneqq \begin{bmatrix} g & -f \\ G & -F \end{bmatrix} \in \mathbb{F}_q^{2n \times 2n}$}
+    \algline{03}{return $(sk \coloneqq B,\; pk \coloneqq h)$}
+    \vspace{0.15em}
+  } \\
+  \hline
+  \vspace{0.2em}\algscheme{CoreFalcon\textsuperscript{+}}
+  \algheading{Sgn$^{+}$}{$(sk=B,m)$}
+  \algline{01}{repeat}
+  \algindentline{02}{$r\sample\{0,1\}^{k}$}
+  \algindentline{03}{$c\coloneqq H(pk,r,m)\in R_{q}$}
+  \algindentline{04}{$(s_{1},s_{2}) \sample \operatorname{PreSmp}\!\left(B,s,(c,0)\right)$}
+  \algline{05}{until $\lVert(s_{1},s_{2})\rVert_{2}\leq\beta$}
+  \algline{06}{$\sigma\coloneqq(r,s_{2}) \in\{0,1\}^{k}\times R$}
+  \algline{07}{return $\sigma$}
+  \alggap
+  \algheading{Ver}{$(pk=h,m,\sigma=(r,s_{2}))$}
+  \algline{08}{$c\coloneqq H(pk,r,m)$}
+  \algline{09}{$s_{1}\coloneqq c-s_{2}\cdot h\pmod q$}
+  \algline{10}{return $\llbracket \lVert(s_{1},s_{2})\rVert_{2}\leq\beta \rrbracket$}
+  &
+  \vspace{0.2em}\algscheme{KoalaFalcon}
+  \algheading{KoalaSgn}{$(sk=B,m)$}
+  \algline{01}{repeat}
+  \algindentline{02}{$r\sample\{0,1\}^{k}$}
+  \algindentline{03}{$c\coloneqq \operatorname{Poseidon}(pk,r,m)\in R_{q}$}
+  \algindentline{04}{$(s_{1},s_{2}) \sample \operatorname{PreSmp}\!\left(B,s,(c,0)\right)$}
+  \algline{05}{until $\lVert(s_{1},s_{2})\rVert_{2}\leq\beta$}
+  \algline{06}{$\sigma\coloneqq(r,s_{2}) \in\{0,1\}^{k}\times R$}
+  \algline{07}{return $\sigma$}
+  \alggap
+  \algheading{KoalaVer}{$(pk=h,m,\sigma=(r,s_{2}))$}
+  \algline{08}{$c\coloneqq \operatorname{Poseidon}(pk,r,m)$}
+  \algline{09}{$s_{1}\coloneqq c-s_{2}\cdot h\pmod q$}
+  \algline{10}{return $\llbracket \lVert(s_{1},s_{2})\rVert_{2}\leq\beta \rrbracket$}
+  \\
+  \end{tabular}
+  \vspace{0.15em}
+  \end{minipage}%
+  }
+
+  \caption{KoalaFalcon and CoreFalcon\textsuperscript{+} key generation, signing, and verification.
+  $\textsc{KoalaFalcon}=(\mathsf{Gen},\mathsf{KoalaSgn},\mathsf{KoalaVer})$ and
+  $\CoreFalcon^{+}=(\mathsf{Gen},\mathsf{Sgn}^{+},\mathsf{Ver})$.}
+  \label{fig:koalafalcon-construction}
+\end{figure}
+  
+\begin{table}[!htbp]
+  \centering
+  \setlength{\fboxsep}{9pt}
+  \fbox{%
+  \begin{minipage}{0.94\textwidth}
+  \vspace{0.2em}
+  \centering
+  \footnotesize
+  \renewcommand{\arraystretch}{1.15}
+  \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.46\linewidth}|>{\raggedright\arraybackslash}p{0.46\linewidth}@{}}
+  \multicolumn{1}{@{}c|}{\textsc{KoalaFalcon-512}} &
+  \multicolumn{1}{c}{\textsc{KoalaFalcon-1024}} \\
+  \hline
+  $\lambda = 128$ &
+  $\lambda = 256$ \\
+  $n = 512$ &
+  $n = 1024$ \\
+  $q = 2^{31} - 2^{24} + 1$ &
+  $q = 2^{31} - 2^{24} + 1$ \\
+  $Q_s = 2^{64}$ &
+  $Q_s = 2^{64}$ \\
+  $C_s = 2^{64} + 2^{50}$ &
+  $C_s = 2^{64} + 2^{50}$ \\
+  $Q_H = 2^{96}$ &
+  $Q_H = 2^{96}$ \\
+  $\alpha = 1.17$ &
+  $\alpha = 1.17$ \\
+  $k = 416$ &
+  $k = 416$ \\
+  $\tau = 1.1$ &
+  $\tau = 1.1$ \\
+  $\epsilon = 1/\sqrt{Q_s \cdot \lambda}$ &
+  $\epsilon = 1/\sqrt{Q_s \cdot \lambda}$ \\
+  $\beta = \tau s \sqrt{2n}$ &
+  $\beta = \tau s \sqrt{2n}$ \\
+  \paramSformula &
+  \paramSformula \\
+  \end{tabular}
+  \vspace{0.2em}
+  \end{minipage}%
+  }
+  \caption{Concrete parameters for KoalaFalcon-512 and KoalaFalcon-1024.}
+  \label{tab:koalafalcon-parameters}
+\end{table}
+
+\FloatBarrier
+\subsection{Security Reduction}\label{modulus-invariance-in-the-reduction}
+
+In this section we discuss implications to the CoreFalcon+ security analysis from
+setting modulus $q$ to the KoalaBear prime. 
+
+\paragraph{Requirements on $q$ for the Algebraic Feasibility of the Construction}
+
+First, we discuss whether the KoalaFalcon construction in \hyperref[koalafalcon-construction]{Figure 1} 
+is algebraically feasible to instantiate with the KoalaBear prime \(q = 2^{31} - 2^{24} + 1\). This involves ensuring 
+the necessary ring-algebraic requirements are in place to support efficient ring multiplication 
+and that the desired NTRU lattice structure exists to support trapdoor sampling. Fast ring 
+multiplication in Falcon uses the NTT, requiring \(q\) to permit a primitive \(2n\)-th root of 
+unity in \(\mathbb{Z}_q\). This is to enable \(X^n + 1\) to split fully into \(n\) linear factors 
+over \(\mathbb{Z}_q\). As well, the public and private bases output from trapdoor sampling 
+\(B_h, B_{f,g}\) must remain bases of the same NTRU lattice. The properties hold \(q = 2^{31} - 2^{24} + 1\) 
+and are proven in \hyperref[appendix-alg-feas]{Appendix~\ref*{appendix-alg-feas}}.
+
+\paragraph{Requirements on $q$ in the $t\text{-}\mathcal{R}\text{-}\mathbf{ISIS}$ Game}
+
+Next, we discuss whether the CoreFalcon+ security reduction requires any properties of \(q\) beyond 
+the desired ring setting. At this stage, we are not concerned with hardness estimates, only 
+whether the hardness estimates of $\operatorname{Adv}_{q,\alpha,B,\mathcal{A}}^{t\text{-}\mathcal{R}\text{-}\mathbf{ISIS}}$ 
+(the advantage of an adversary in solving the $t\text{-}\mathcal{R}\text{-}\mathbf{ISIS}$ game) are
+still applicable without modification to the reduction for $q=2^{31} - 2^{24} + 1$.
+
+\[
+\operatorname{Adv}_{q,\alpha,B,\mathcal{A}}^{t\text{-}\mathcal{R}\text{-}\mathbf{ISIS}}
+:=
+\Pr\!\bigl[t\text{-}\mathcal{R}\text{-}\mathbf{ISIS}_{q,\alpha,B}(\mathcal{A}) \Rightarrow 1\bigr].
+\]
+
+The CoreFalcon+ security reduction demonstrates adversaries capable of forgery can be reduced to
+solvers of the \(t\)-R-ISIS problem depicted in \hyperref[fig:t-r-isis-game]{Figure 2}. The reduction is grounded in the one-wayness of the 
+public-to-private key map and standard GPV proof strategies. Rather than arguing the 
+applicability of the reduction to concrete instantiations via collision resistance and 
+statistical distance of 
+public keys to uniformity (as is the case for NTRUSign), CoreFalcon+ uses Rényi divergence 
+to quantify the bit loss in security from the real signing and random oracle instantiation 
+outputs to the ideal simulated setting. It is assumed \(t\)-R-ISIS is as hard as standard 
+SIS and hardness estimates are informed from best-known SIS attacks via the
+core-SVP methodology. A hybrid argument upper bounds a more directly applicable NTRU-ISIS 
+advantage into an R-ISIS hardness plus decisional-NTRU advantage, arguing that 
+\(t\)-R-ISIS is sufficient for the concrete security bounds on unforgeability. Rényi 
+divergence is introduced into the bound as a multiplicative factor in the
+computational term to quantify the bit loss in security from simulated to real oracles.
+
+\begin{figure}[ht]
+  \centering
+  \setlength{\fboxsep}{7pt}
+  \fbox{%
+  \begin{varwidth}{0.36\textwidth}
+    \vspace{0.1em}
+    \noindent{\scriptsize\textbf{Game $t$-$\mathcal{R}$-ISIS$_{q,\alpha,B}(\mathsf{A})$}}\par
+    \vspace{0.08em}
+    \hrule
+    \vspace{0.12em}
+    \algline{01}{$(\cdot,\cdot,\cdot,\cdot,h) \sample \operatorname{TpdGen}(\alpha,q)$}
+    \algline{02}{\textbf{for} $i \in [t]$}
+    \algindentline{03}{$c_i \sample R_q$}
+    \algline{04}{$(j,u,v) \sample \mathsf{A}(h,c_1,\ldots,c_t)$}
+    \algline{05}{\textbf{return} $\llbracket u + h\cdot v = c_j \land \lVert(u,v)\rVert_2 \le B \rrbracket$}
+    \vspace{0.1em}
+  \end{varwidth}%
+  }
+  \caption{$t$-$\mathcal{R}$-ISIS$_{q,\alpha,B}$ Game.}
+  \label{fig:t-r-isis-game}
+\end{figure}
+
+The $t\text{-}\mathcal{R}\text{-}\mathbf{ISIS}$ game itself does not impose any strict requirement 
+on $q$ aside from the ring $R_q$ existing. Thus, in the next section we turn our attention to how 
+this ideal simulation in the ROM is bridged to a real instantiation, tracking exactly where the 
+modulus enters into the security bound, and what requirements it must satisfy, term by term. 
+
+\paragraph{Requirements on $q$ for the Security Reduction to $t\text{-}\mathcal{R}\text{-}\mathbf{ISIS}$}\label{sqrtq-scaling-argument}
+
+The reduction from CoreFalcon+ forgery to a $t\text{-}\mathcal{R}\text{-}\mathbf{ISIS}$ introduces 
+Rényi-loss terms to quantify distributional differences between the idealized security game and 
+a real instantiation. We argue that once the desired ring setting is established, 
+the only $q$ dependent property needed to maintain applicability of the CoreFalcon+ security bound 
+under different moduli is that the signature standard deviation must be greater than or equal to 
+the scaled smoothing parameter of the underlying lattice. While there are $q$ dependent properties,
+the CoreFalcon+ formulaic parameters for $\ell_2$ norm threshold $\beta$, target Gram-Schmidt norm 
+of the private basis $||B_{f,g}||_{GS},$ and signature standard deviation $s$ are set in such a way 
+that this condition is fulfilled for generic $q$. 
+
+\begin{lemma}\label{lem:sqrtq-scaling}
+  Fix $n$, $\epsilon$, $\alpha$, $\tau$. Let $\mathrm{TpdGen}(\alpha,q)$ return trapdoor basis $B_{f, g}$ with 
+  $\|B_{f,g}\|_{\mathrm{GS}}\le\alpha\sqrt{q}$. Where $s, \beta$ are set as
+  \[
+    s = \eta_\epsilon(\mathbb{Z}^{2n}) \cdot \alpha \sqrt{q},
+    \qquad \,\,
+    \eta_\epsilon(\mathbb{Z}^{2n}) = \frac{1}{\pi} \sqrt{\frac{\ln\!\left(4n\left(1+\frac{1}{\epsilon}\right)\right)}{2}},
+    \qquad \,\,
+    \beta = \tau s \sqrt{2n}
+  \]
+  Whether the smoothing condition $s\ge\eta_\epsilon(\mathbb{Z}^{2n})\cdot\|B_{f,g}\|_{\mathrm{GS}}$ 
+  (and hence $s\ge\eta_\epsilon(\Lambda_{h,q})$) holds is independent of $q$ for every modulus $q$ in 
+  which $R_q$ is defined.
+\end{lemma}
+
+\begin{proof} 
+
+Notice that \(s \propto \sqrt{q}\) and \(\beta \propto \sqrt{q}\), for fixed \(n, \epsilon, \alpha, \tau\). 
+In particular, when normalized by a factor of $\frac{1}{\sqrt{q}}$, the value of 
+$\frac{s}{\sqrt{q}} , \frac{\beta}{\sqrt{q}}$ are both independent of \(q\). 
+
+
+\[
+\frac{s}{\sqrt{q}} = \eta_\epsilon(\mathbb{Z}^{2n}) \cdot \alpha
+\]
+
+\[
+\frac{\beta}{\sqrt{q}} =  \frac{\tau s \sqrt{2n}}{\sqrt{q}}  = \tau \sqrt{2n} \cdot \eta_\epsilon(\mathbb{Z}^{2n}) \cdot \alpha
+\]
+
+The trapdoor sampler \(\mathrm{TpdGen}\) determines 
+ring elements $f, g, F, G$ defining $B_{f, g}$ satisfying
+
+\[
+  B_{f, g} =
+  \begin{bmatrix}
+  g & -f \\
+  G & -F
+  \end{bmatrix},
+\qquad
+||B_{f,g}||_{GS} \le \alpha \sqrt{q}.
+\]
+
+The intended smoothing condition on $s$ is $s \ge \eta_\epsilon(\mathbb{Z}^{2n}) \cdot ||B||_{GS}.$
+Since both \(s\) and the upper bound on
+\(\eta_\epsilon(\mathbb{Z}^{2n}) \cdot ||B||_{GS}\) scale proportional to
+\(\sqrt{q}\), changing \(q\) preserves the inequality as long as the trapdoor-quality guarantee is maintained. 
+
+\[
+\eta_\epsilon(\mathbb{Z}^{2n})
+    \|B_{f,g}\|_{\mathrm{GS}}
+\le
+\eta_\epsilon(\mathbb{Z}^{2n})
+    \alpha\sqrt{q}
+=
+s.
+\]
+
+Thus, for fixed \((n, \epsilon, \alpha)\), satisfaction of the smoothing condition is independent of \(q\),
+provided the trapdoor-quality bound
+\[
+\|B_{f,g}\|_{\mathrm{GS}}\le\alpha\sqrt{q}
+\]
+continues to hold.
+
+\end{proof}
+
+
+\begin{theorem}\label{thm:sqrtq-scaling}
+  Under the $q$-dependence audit of the CoreFalcon+ reduction given in
+  \hyperref[appendix-detailed-loss-term-derivations]{Appendix~\ref*{appendix-detailed-loss-term-derivations}},
+  changing the modulus preserves the conditions required for the R\'enyi-loss analysis,
+  provided the required cyclotomic ring setting and trapdoor-quality/smoothing conditions remain satisfied.
+\end{theorem}
+
+\begin{proof}
+
+A term-by-term audit of the CoreFalcon+ security reduction and security bound 
+(in \hyperref[appendix-detailed-loss-term-derivations]{Appendix~\ref*{appendix-detailed-loss-term-derivations}})
+finds the only $q$ dependent properties required for the reduction are the cyclotomic ring setting $R_q$
+and $s \ge \eta_\epsilon(\mathbb{Z}^{2n}) \cdot ||B||_{GS}$. We have already established in 
+\hyperref[lem:sqrtq-scaling]{Lemma ~\ref*{lem:sqrtq-scaling}} that the 
+CoreFalcon+ parameterization results in $s \ge \eta_\epsilon(\mathbb{Z}^{2n}) \cdot ||B||_{GS}$ being 
+independent of $q$. 
+Therefore, so long as $q$ permits the cyclotomic ring structure $R_q$, modification of $q$ does not 
+affect the applicability of the reduction.
+
+\end{proof}
+
+
+\begin{corollary}[Modulus-independent normalized SIS target]\label{thm:sis-target-invariance}
+For $m = 2n$,
+\[
+\frac{\beta}{(\det\Lambda_q^\perp(A))^{1/m}}
+=
+\frac{\beta}{q^{n/m}}
+=
+\frac{\beta}{\sqrt{q}},
+\]
+and therefore the target norm remains constant relative to the determinant scale of the $q$-ary lattice under a change of modulus.
+\end{corollary}
+
+\begin{proof}
+
+The same argument holds for \(\beta = \tau s \sqrt{2n}\) with respect to $s$. 
+Notice 
+\(\beta/s = \tau\sqrt{2n}\) is also independent of \(q\), obeying the same $\sqrt{q}$ scaling behavior. 
+Increasing \(q\) raises both \(s\) and \(\beta\) proportionally, so \(\beta\) itself scales as \(\sqrt{q}\),
+while the normalized quantity \(\beta / \sqrt{q}\) is independent of \(q\).
+The hardness of $t\text{-}\mathcal{R}\text{-}\mathbf{ISIS}$ will depend on 
+the shortness of $\ell_2$ norm threshold $\beta$ relative to the natural scale of the lattice.
+With \(m = 2n\) the natural scale of a \(q\)-ary lattice is \((\det \Lambda_q^\perp(A))^{1/m} = q^{n/m} = q^{1/2}\). 
+So
+
+\[
+\frac{\beta}{(\det\Lambda_q^\perp(A))^{1/m}}
+=
+\frac{\beta}{q^{n/m}}
+=
+\frac{\beta}{\sqrt{q}}
+\]
+
+is the same \(q\)-independent quantity as before, contextualizing why the normalized
+SIS target length is stable across the modulus change. The normalized $\beta / \sqrt{q}$ 
+remains constant under variation of $q$.
+
+\end{proof}
+
+
+\paragraph{Lattice Reduction Attacks on q-ary Lattices}\label{lattice-reduction-attacks-on-q-ary-lattices}
+
+Next, to support the findings from the lattice-estimator output, we argue that these parameters result 
+in predictable behavior for the estimated hardness of $t\text{-}\mathcal{R}\text{-}\mathbf{ISIS}$
+by analyzing lattice reduction attacks on \(q\)-ary lattices. 
+
+Let \(\Lambda_q^\perp(A)\) be an \(m\)-dimensional
+\(q\)-ary lattice, where \(q\) is prime, \(A \in \mathbb{Z}_q^{n \times m}\) is a random matrix, 
+with linearly independent rows and \(m \ge n\). 
+The number of elements in \(\Lambda_q^\perp(A) \mod q\) is \(q^{m-n}\).
+The determinant is \(\det(\Lambda_q^\perp(A)) = q^n\).
+
+\[
+\Lambda_q^\perp(A) = \{y \in \mathbb{Z}^m : Ay = 0 \mod q\}
+\]
+
+
+By Definition~2.11 of \cite{Menezes2026GentleIntro} 
+The volume of \(\Lambda_q^\perp(A)\) is \(\det(\Lambda_q^\perp(A)) = q^n\), and 
+corresponds to the sparsity of lattice points in \(\mathbb{R}^m\).
+By (Section~3, ~\cite{Regev2009LatticeSurvey}), a heuristic estimate can be made for 
+the first successive minimum of \(\Lambda_q^\perp(A)\) as the smallest radius of
+an \(m\) dimensional ball with volume \(q^n\)
+
+\[
+\lambda_1(\Lambda_q^\perp(A)) \approx q^{n/m} \sqrt{\frac{m}{2\pi e}}
+\]
+
+An initial observation is that the determinant of a \(q\)-ary SIS
+lattice scales exactly as \(q^n\), and the heuristic estimate from
+\cite{Regev2009LatticeSurvey}
+of the first successive minimum \(\lambda_1\) scales proportional to
+\(q^{n/m}\). For \(m=2n\), the estimated shortest vector in the lattice
+\(\Lambda_h\) is approximately
+
+\[
+\lambda_1(\Lambda_q^\perp(A)) \approx q^{n/m} \sqrt{\frac{m}{2\pi e}} 
+= q^{n/2n} \sqrt{\frac{2n}{2\pi e}}  
+= q^{1/2} \sqrt{\frac{n}{\pi e}}  
+= \sqrt{\frac{qn}{\pi e}}  
+\]
+
+At the time of equation~(1), Section~3 of
+\cite{Regev2009LatticeSurvey} (2008), the best known lattice reduction algorithms for determining
+short vectors in a random \(m\) dimensional \(q\)-ary lattice
+\(\Lambda^\perp_q(A)\) were capable of solving for lengths close to
+
+\[
+\min\{q, (\det(\Lambda^\perp_q(A)))^{1/m} \cdot \delta^m\} = \min\{q, q^{n/m}\delta^m\}
+\]
+
+Where \(\delta\) depends on the algorithm and is observed by
+\cite{GamaNguyen2008} to be typically \(\delta \approx 1.013\) for fast
+algorithms, and as low as \(\delta \approx 1.011\) for slower more
+precise algorithms. For our parameter choices
+
+\[
+\min\{q, q^{n/m}\delta^m\} = \min\{q, q^{n/{2n}}\delta^{2n}\} = \min\{q, \sqrt{q} \cdot \delta^{2n}\} 
+\]
+
+Using the script \texttt{bkz\_length.py} in the supporting code, \(\min\{q, q^{n/m}\delta^m\}\) 
+is used to compare the signature norm bound \(\beta\) against these estimates.
+For the \(\lambda=128, n=512\) setting \(\delta\) would need to be at
+most \(1.00387782756709\). For the \(\lambda=256, n=1024\) setting
+\(\delta\) would need to be at most \(1.00211437276073\). Meaning for
+these style lattice reduction attacks to be effective, \(\delta\) needs
+to be below these values of \(\delta\) for the respective parameter
+sets. Which is out of practical reach by the analysis of \cite{GamaNguyen2008}.
+
+
+
+\subsection{Security Estimates}\label{concrete-parameter-choices}
+
+Now that we have established the viability of the CoreFalcon+ reduction for our 
+use case, we re-estimate an adversary's advantage
+$\operatorname{Adv}^{(Q_H+1)\text{-R-ISIS}}_{q,\alpha,\beta,B}$
+in solving the $(Q_H+1)$-R-ISIS problem under the new modulus.
+The CoreFalcon+ approach assumes that $t$-R-ISIS is as hard as SIS
+and estimates the resulting computational security using the
+\texttt{lattice-estimator} library~\cite{LatticeEstimator}.
+We briefly review this methodology to clarify both the origin of the
+computational security term and the role played by the reduction to
+$t$-R-ISIS before presenting the concrete estimates for our parameter
+sets.
+It is explicitly assumed that $t$-R-ISIS is as hard as SIS, in part because best known attacks do
+not rely on the ring structure of R-ISIS. Estimates of SIS are made using the
+core-SVP methodology from section~6 of \cite{Albrecht2015LWE},
+which considers dual and primal BKZ / sieve style attacks for predicting the
+concrete hardness of SVP style problems. They do not consider enumeration style
+attacks because they run in super-exponential time, whereas BKZ runs in exponential time.
+This is also the methodology behind the \texttt{SIS.estimate.rough()} function in
+\texttt{lattice-estimator}. The core-SVP hardness estimates are:
+
+\begin{center}
+\begin{tabular}{@{}rrrrrr@{}}
+\toprule
+$n$ & $\lambda$ & $q$ & $s$ & $\beta$ & SIS estimate \\
+\midrule
+512 & 128 & 2130706433 & 69011.59 & $2.4292\cdot 10^6$ & $2^{121.18}$ \\
+1024 & 256 & 2130706433 & 70115.84 & $3.4904\cdot 10^6$ & $2^{279.15}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Running \texttt{scripts/corefalcon.sage} from the supporting code evaluates the Theorem 1 UF-CMA 
+bound from a Closer Look at Falcon for the KoalaBear instantiation. 
+
+\begin{center}
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+$n$ & $\lambda$ & SIS bits & UF-CMA bits \\
+\midrule
+512 & 128 & 121.18 & 117.98 \\
+1024 & 256 & 279.15 & 256.00 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Rényi and sampler term decomposition from the same run:
+
+\begin{center}
+\begin{tabular}{@{}rrrrrrr@{}}
+\toprule
+$n$ & $\lambda$ & $a_p$ & $a_u$ & $r_p$ & $r_u$ & $p_{\mathrm{PreSmp},\beta}$ \\
+\midrule
+512 & 128 & 75.35 & 75.35 & 1.00 & 1.00 & 0.999951 \\
+1024 & 256 & 150.70 & 150.70 & 1.00 & 1.00 & 0.999999998 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% TODO do this if time allows
+
+\subsection{Performance}
+
+Benchmarks for KoalaFalcon-512 signatures were collected on a MacBook Pro with the M4 Max chip 
+with 48GB RAM. Throughput and latency for a run of $2^{17}$ signatures. Signatures are $2.1$ KB. 
+Multi-threaded benchmarks give each thread a single-threaded signing job, which independently 
+run across 16 threads.
+
+\begin{table}[htbp]
+  \centering
+  \resizebox{0.85\textwidth}{!}{%
+  \begin{tabular}{lrrrrrrr}
+  \toprule
+  Mode
+  & Threads
+  & $\log_2 N$
+  & Keygen (s)
+  & Sign total (s)
+  & Sign/s
+  & Verify total (s)
+  & Verify/s \\
+  \midrule
+  Single-threaded
+  & 1
+  & 17
+  & 0.104
+  & 73.286
+  & 1788
+  & 9.566
+  & 13701 \\
+  Multi-threaded
+  & 16
+  & 17
+  & 0.092
+  & 6.363
+  & 20599
+  & 0.816
+  & 160625 \\
+  \bottomrule
+  \end{tabular}%
+  }
+  \caption{Falcon-512 performance, 131,072 signatures.}
+  \label{tab:falcon512-signature-performance}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \resizebox{0.85\textwidth}{!}{%
+  \begin{tabular}{lrrrrrrr}
+  \toprule
+  Mode
+  & Threads
+  & $\log_2 N$
+  & Keygen (s)
+  & Sign total (s)
+  & Sign/s
+  & Verify total (s)
+  & Verify/s \\
+  \midrule
+  Single-threaded
+  & 1
+  & 17
+  & 0.795
+  & 166.747
+  & 786
+  & 36.205
+  & 3620 \\
+  Multi-threaded
+  & 16
+  & 17
+  & 0.388
+  & 15.332
+  & 8549
+  & 3.421
+  & 38310 \\
+  \bottomrule
+  \end{tabular}%
+  }
+  \caption{Falcon-1024 performance, 131,072 signatures.}
+  \label{tab:falcon1024-signature-performance}
+\end{table}
+
+Runtime performance and signature size is strictly worse than the original Falcon scheme, 
+but this is to be expected given the increase in field size (and therefore the data size 
+of each ring coefficient).
+
+\begin{table}[!htbp]
+  \centering
+  \resizebox{0.85\textwidth}{!}{%
+  \begin{tabular}{lrrrrrrr}
+  \toprule
+  Mode
+  & Threads
+  & $\log_2 N$
+  & Keygen (s)
+  & Sign total (s)
+  & Sign/s
+  & Verify total (s)
+  & Verify/s \\
+  \midrule
+  Single-threaded
+  & 1
+  & 17
+  & 0.010
+  & 13.601
+  & 9637
+  & 1.507
+  & 86999 \\
+  Multi-threaded
+  & 16
+  & 17
+  & 0.002
+  & 1.162
+  & 112799
+  & 0.129
+  & 1017779 \\
+  \bottomrule
+  \end{tabular}%
+  }
+  \caption{FN-DSA / Falcon-512 performance, 131,072 signatures.}
+  \label{tab:fndsa-falcon512-signature-performance}
+\end{table}
+
+\begin{table}[!htbp]
+  \centering
+  \resizebox{0.85\textwidth}{!}{%
+  \begin{tabular}{lrrrrrrr}
+  \toprule
+  Mode
+  & Threads
+  & $\log_2 N$
+  & Keygen (s)
+  & Sign total (s)
+  & Sign/s
+  & Verify total (s)
+  & Verify/s \\
+  \midrule
+  Single-threaded
+  & 1
+  & 17
+  & 0.011
+  & 27.025
+  & 4850
+  & 2.980
+  & 43987 \\
+  Multi-threaded
+  & 16
+  & 17
+  & 0.013
+  & 2.140
+  & 61255
+  & 0.247
+  & 531447 \\
+  \bottomrule
+  \end{tabular}%
+  }
+  \caption{FN-DSA / Falcon-1024 performance, 131,072 signatures.}
+  \label{tab:fndsa-falcon1024-signature-performance}
+\end{table}
+
+\FloatBarrier

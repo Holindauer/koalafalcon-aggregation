@@ -1,0 +1,143 @@
+\section{Proofs of KoalaFalcon Requirements}\label{appendix-detailed-loss-term-derivations}
+
+\subsection{Algebraic Feasibility Proofs}\label{appendix-alg-feas}
+
+\paragraph{Proof 1: Ring Algebraic Requirements}
+
+Let $q = 2^{31} - 2^{24} + 1$, a known prime. The field $\mathbb{F}_q$ has multiplicative group $\mathbb{F}_q^\times$ of cyclic order $q-1$. There exists a primitive $2n$-th root of unity in $\mathbb{F}_q$ if and only if $2n | q - 1$. 
+
+$$
+q - 1 = 2^{31} - 2^{24}  = 2^{24}(2^7 - 1) 
+$$
+
+For $n=512=2^9$, $2^{24}(2^7 - 1) \equiv 0  \mod 2^{10}$. For $n=1024=2^{10}$, $2^{24}(2^7 - 1) \equiv 0  \mod 2^{11}$. Therefore there exists a 
+primitive $2n$-th root of unity in $\mathbb{F}_q$ for both choices of $n$. The existence of a primitive $2n$-th root of unity implies that 
+$X^n + 1$ has $n$ roots, splitting into $n$ linear factors. $\blacksquare$
+
+\paragraph{Proof 2: Public, Private Key Remain Bases to the Same Lattice}
+
+Let $\Lambda = \Lambda(B_1)$ be a $2n$-dimensional lattice with basis $B_1$. $B_2$ is also a basis of $\Lambda$ if and only if there exists a unimodular matrix $U$ with determinant $\pm 1$ such that $UB_2 = B_1$. This definition is adapted from Theorem~2.9 of \cite{Menezes2026GentleIntro}.
+
+Let $q = 2^{31} - 2^{24} + 1$, $n=2^\kappa$ is a power-of-two, $R = \mathbb{Z}[X]/(X^n + 1)$, with $\phi = X^n + 1$ fully splits into $n$ linear factors over $\mathbb{Z}_q$, and $f, g \in R_q^\times$. The relation
+
+$$
+\begin{aligned}
+h &\equiv g f^{-1} \pmod{\phi, q}, \\
+fG - gF &\equiv q \pmod{\phi}
+\end{aligned}
+$$
+
+The private basis $B_1$ and public basis $B_2$ of a $2n$ dimensional NTRU lattice are defined below. 
+
+$$
+B_1 =
+\begin{bmatrix}
+g & -f \\
+G & -F
+\end{bmatrix},
+\qquad
+B_2 =
+\begin{bmatrix}
+-h & I_n \\
+qI_n & O_n
+\end{bmatrix}.
+$$
+
+We wish to show there exists a unimodular matrix $U$ with integral coefficients such that $UB_2 = B_1$. One such matrix is 
+
+$$
+U =
+\begin{bmatrix}
+-f & \frac{g-hf}{q} \\
+-F & \frac{G-hF}{q}
+\end{bmatrix}.
+$$
+
+% I believe this is a standard example of a unimodular matrix for transforming the private basis to the public basis, should be cited at some point
+
+Evaluating $UB_2$ gives
+
+$$
+\begin{aligned}
+U B_2
+&=
+\begin{bmatrix} -f & \frac{g-hf}{q} \\ -F & \frac{G-hF}{q} \end{bmatrix}
+\begin{bmatrix} -h & I_n \\ qI_n & O_n \end{bmatrix}
+\\[4pt]
+&=
+\begin{bmatrix}
+-f(-h) + \frac{g-hf}{q}\, qI_n & (-f)I_n + \frac{g-hf}{q}\, O_n \\[4pt]
+-F(-h) + \frac{G-hF}{q}\, qI_n & -F\, I_n + \frac{G-hF}{q}\, O_n
+\end{bmatrix}
+\\[4pt]
+&=
+\begin{bmatrix}
+fh + g - hf & -f \\
+Fh + (G-hF) & -F
+\end{bmatrix}
+\\[4pt]
+&=
+\begin{bmatrix} g & -f \\ G & -F \end{bmatrix}
+= B_1 .
+\end{aligned}
+$$
+
+The determinant of $U$ is 
+
+$$
+\det(U) = (-f \cdot \frac{G - hF}{q}) - (-F \cdot \frac{g - hf}{q}) 
+$$
+$$
+= \frac{-fG + fhF}{q} - \frac{-Fg + Fhf}{q} 
+= \frac{-fG + fhF + Fg - Fhf}{q} = \frac{-fG + Fg}{q}
+$$
+
+And since $fG - gF \equiv q \pmod{X^n+1}$,
+
+$$
+\det(U) = \frac{-fG + Fg}{q} = - \frac{q}{q} = -1
+$$
+
+Therefore there exists a unimodular matrix $U$ with integral coefficients such that $UB_2 = B_1$. Thus $B_1, B_2$ are bases of the same lattice $\Lambda$. $\blacksquare$
+
+% TODO: maybe justify why coefficients are integral, this is probably fine as is but technically the proof is incomplete until then.
+
+\paragraph{Proof 3: Standard Deviation is Greater than Smoothing Parameter}\label{proof-3}
+
+The loss-term corollaries require
+\(s \ge \eta_\epsilon(\Lambda_{h,q})\). By the GPV smoothing lemma
+(Lemma~3.1 of \cite{GPV2008}), for the trapdoor basis \(B_{f,g}\) produced by
+\(\mathrm{TpdGen}\),
+
+\[
+\eta_\epsilon(\Lambda_{h,q}) \le \eta_\epsilon(\mathbb{Z}^{2n}) \cdot ||B_{f,g}||_{GS}.
+\]
+
+By Lemma~4 of \cite{Fouque2024CoreFalcon},
+\(\eta_\epsilon(\mathbb{Z}^{2n}) \le \eta_\epsilon^{\mathrm{upper}}(\mathbb{Z}^{2n})\).
+With \(||B_{f,g}||_{GS} \le \alpha\sqrt{q}\) and the CoreFalcon+ choice
+of \(s\),
+
+\[
+\eta_\epsilon(\Lambda_{h,q})
+\le
+\eta_\epsilon^{\mathrm{upper}}(\mathbb{Z}^{2n}) \cdot \alpha\sqrt{q}
+= s.
+\]
+
+$\blacksquare$
+
+For intuitive context, the trapdoor-quality bound
+\(||B_{f,g}||_{GS} \le \alpha\sqrt{q}\) forces the relevant smoothing
+threshold to scale as \(\sqrt{q}\), and the definition of \(s\) matches
+it. Consider the integer lattice \(\mathbb{Z}^{2n}\) scaled by
+\(||B_{f,g}||_{GS}\). Since \(\Lambda_{h,q}\) may be skewed, the scaled
+integer lattice \(||B_{f,g}||_{GS}\cdot \mathbb{Z}^{2n}\) represents the
+case where every orthogonal direction of a \(2n\)-dimensional lattice is
+of length equal to the worst-case Gram-Schmidt norm of
+\(||B_{f,g}||_{GS}\). Smoothing this scaled lattice requires width at
+least \(||B_{f,g}||_{GS} \cdot \eta_\epsilon(\mathbb{Z}^{2n})\), which
+is exactly the CoreFalcon+ choice of \(s\) up to the Lemma 4 upper
+bound. Raising \(q\) raises both sides by the same \(\sqrt{q}\) factor,
+so the condition is preserved.
+

@@ -1,0 +1,78 @@
+
+--------------------------------
+Running signature benchmarks
+  crate=/Users/hol/pursuits/repos/lab/impl/koalafalcon/koalafalcon
+  profile=opt-runtime  RUSTFLAGS=-C target-cpu=native
+  hw_threads=16
+  n=512 1024
+--------------------------------
+
+Building signature...
+warning: function `mod_koala_bear_u64` is never used
+  --> src/algebra/koalabear_field.rs:18:8
+   |
+18 | pub fn mod_koala_bear_u64(value: u64) -> u32 {
+   |        ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `mod_koala_bear_u32` is never used
+  --> src/algebra/koalabear_field.rs:24:8
+   |
+24 | pub fn mod_koala_bear_u32(mut value: u32) -> u32 {
+   |        ^^^^^^^^^^^^^^^^^^
+
+warning: `koalafalcon` (lib) generated 2 warnings
+    Finished `opt-runtime` profile [optimized] target(s) in 0.07s
+
+================================
+Falcon-512
+================================
+
+single-threaded signature performance (n=512):
+parameter set: Falcon-512
+message:       "hello, koala falcon" (19 bytes)
+signatures:    131072
+threads:       1
+keygen:        0.104 s
+sign total:    73.286 s
+sign rate:     1788 signatures/s
+verify total:  9.566 s
+verify rate:   13701 verifies/s
+
+multi-threaded signature performance (n=512):
+parameter set: Falcon-512
+message:       "hello, koala falcon" (19 bytes)
+signatures:    131072
+threads:       16
+keygen:        0.092 s
+sign total:    6.363 s
+sign rate:     20599 signatures/s
+verify total:  0.816 s
+verify rate:   160625 verifies/s
+
+================================
+Falcon-1024
+================================
+
+single-threaded signature performance (n=1024):
+parameter set: Falcon-1024
+message:       "hello, koala falcon" (19 bytes)
+signatures:    131072
+threads:       1
+keygen:        0.795 s
+sign total:    166.747 s
+sign rate:     786 signatures/s
+verify total:  36.205 s
+verify rate:   3620 verifies/s
+
+multi-threaded signature performance (n=1024):
+parameter set: Falcon-1024
+message:       "hello, koala falcon" (19 bytes)
+signatures:    131072
+threads:       16
+keygen:        0.388 s
+sign total:    15.332 s
+sign rate:     8549 signatures/s
+verify total:  3.421 s
+verify rate:   38310 verifies/s

@@ -1,0 +1,30 @@
+% !TEX program = pdflatex
+% !BIB program = bibtex
+
+\input{tex_files/preamble}
+
+\begin{document}
+
+\maketitle
+
+\input{tex_files/title_abstract}
+
+\tableofcontents
+
+\input{tex_files/introduction}
+\input{tex_files/preliminaries}
+\input{tex_files/koalafalcon_section}
+% \input{tex_files/aggregation}
+
+\FloatBarrier
+
+\clearpage
+\nocite{*}
+\bibliographystyle{plainurl}
+\bibliography{koalafalcon}
+
+\appendix
+\input{tex_files/appendix_proofs}
+\input{tex_files/q_dependence_audit}
+
+\end{document}

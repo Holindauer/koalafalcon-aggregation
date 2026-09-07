@@ -1,0 +1,398 @@
+\section{Introduction}
+
+In this work, we consider the commitment cost of the transcript-derived LogUp* pushforward 
+\(Y=I_*\operatorname{eq}_r\). In LogUp*, a proof of multilinear evaluation \(\widetilde{Y}(\alpha)\) 
+is made, requiring a commitment be made to \(Y\) 
+
+\[
+\widetilde{Y}(\alpha) = \langle Y, \operatorname{eq}_\alpha \rangle
+\]
+
+We identify that for transcript-derived pushforward \(Y=I_*\operatorname{eq}_r\), an explicit commitment is 
+not required, and may instead be kept virtual by means of pushforward-pullback duality,
+\(\langle I_{*}A, B\rangle = \langle A, I^{*}B\rangle\). The evaluation \(\widetilde{Y}(\alpha)\) may 
+be represented as a structured lookup on \(I\), 
+
+\[
+\begin{aligned}
+\widetilde{Y}(\alpha) 
+&= \langle I_*\operatorname{eq}_r, \operatorname{eq}_\alpha \rangle \\
+&= \langle \operatorname{eq}_r, I^* \operatorname{eq}_\alpha \rangle \\
+&= \sum_{i \in [n]} \operatorname{eq}_r[i] \cdot \operatorname{eq}_\alpha[I[i]] \\
+\end{aligned}
+\]
+
+and proven via a standard read-only-memory / structured-lookup argument such as Shout, representing 
+$I$ as a matrix of one-hot vector rows (denoted $I'$) which are subject to tensor decomposition. However, 
+the duality stated up to now is not yet sufficient to eliminate the commitment on both $Y$ since there is 
+still a matter of proving evaluations of $I$, as well as $I'$.
+
+The tensorized one-hot representation used to virtualize the transcript-dependent LogUp* pushforward 
+can also serve as the committed representation of the witness index map itself, allowing both ordinary 
+$I$-evaluation claims and virtual $I_*\operatorname{eq}_r$-evaluation claims to be discharged from the 
+same committed representation. In this way, the commitments to both $Y$ and $I$ are replaced by a single 
+committed representation of $I$, instantiated by commitments to the tensor components 
+$I'_0,\ldots,I'_{d-1}$, which are not transcript-dependent:
+\[
+\operatorname{Com}(I),\operatorname{Com}(I_*\operatorname{eq}_r)
+\;\longrightarrow\;
+\operatorname{Com}(I'_0),\ldots,\operatorname{Com}(I'_{d-1}).
+\]
+The commitment size tradeoff is summarized quantitatively in the following table
+
+
+\begin{table}[!htbp]
+    \centering
+    \small
+    \begin{tabular}{@{}lcc@{}}
+    \toprule
+    & Ordinary LogUp* & Virtualized LogUp* \\
+    \midrule
+    Table commitments
+    & $1\times T,\ |T|=m$
+    & $1\times T,\ |T|=m$ \\
+    Index/pushforward commitments
+    &
+    $\begin{array}{c}
+    1\times I,\ |I|=n \\
+    1\times Y,\ |Y|=m
+    \end{array}$
+    &
+    $\begin{array}{c}
+    d\times I'_j,\,\,
+    |I'_j|=nm^{1/d}
+    \end{array}$
+    \\
+    \bottomrule
+    \end{tabular}
+    \caption{Comparison of Commitment Sizes}
+    \label{tab:commit-cost}
+\end{table}
+
+Totalling $2m + n$ field elements for standard LogUp*, and $m + dn\cdot m^{1/d}$ for our optimization.
+There is no transcript-dependent $Y$ in our case, and the $d$ component commitments are independently 
+computable and amenable to batching. Increasing $d$ reduces $m^{1/d}$ and the reconstruction depth, but 
+increases the number of committed components and affects the Shout read-check cost; hence $d$ should be 
+chosen to balance these tradeoffs.
+
+\begin{table}[!htbp]
+\centering
+\small\begin{tabular}{c c r r r r}
+    \hline
+    $m$ & $d$
+    & $|I'_j|$
+    & $d|I'_j|$
+    & Ordinary total
+    & Virtualized total \\
+    \hline
+    
+    $2^{16}$ & $2$
+    & $262{,}144$
+    & $524{,}288$
+    & $132{,}096$
+    & $589{,}824$ \\
+    
+    $2^{16}$ & $4$
+    & $16{,}384$
+    & $65{,}536$
+    & $132{,}096$
+    & $131{,}072$ \\
+    
+    $2^{16}$ & $8$
+    & $4{,}096$
+    & $32{,}768$
+    & $132{,}096$
+    & $98{,}304$ \\
+    
+    $2^{16}$ & $16$
+    & $2{,}048$
+    & $32{,}768$
+    & $132{,}096$
+    & $98{,}304$ \\
+    
+    \hline
+    
+    $2^{20}$ & $2$
+    & $1{,}048{,}576$
+    & $2{,}097{,}152$
+    & $2{,}098{,}176$
+    & $3{,}145{,}728$ \\
+    
+    $2^{20}$ & $4$
+    & $32{,}768$
+    & $131{,}072$
+    & $2{,}098{,}176$
+    & $1{,}179{,}648$ \\
+    
+    $2^{20}$ & $5$
+    & $16{,}384$
+    & $81{,}920$
+    & $2{,}098{,}176$
+    & $1{,}130{,}496$ \\
+    
+    $2^{20}$ & $10$
+    & $4{,}096$
+    & $40{,}960$
+    & $2{,}098{,}176$
+    & $1{,}089{,}536$ \\
+    
+    $2^{20}$ & $20$
+    & $2{,}048$
+    & $40{,}960$
+    & $2{,}098{,}176$
+    & $1{,}089{,}536$ \\
+    
+    \hline
+    
+    $2^{24}$ & $2$
+    & $4{,}194{,}304$
+    & $8{,}388{,}608$
+    & $33{,}555{,}456$
+    & $25{,}165{,}824$ \\
+    
+    $2^{24}$ & $3$
+    & $262{,}144$
+    & $786{,}432$
+    & $33{,}555{,}456$
+    & $17{,}563{,}648$ \\
+    
+    $2^{24}$ & $4$
+    & $65{,}536$
+    & $262{,}144$
+    & $33{,}555{,}456$
+    & $17{,}039{,}360$ \\
+    
+    $2^{24}$ & $6$
+    & $16{,}384$
+    & $98{,}304$
+    & $33{,}555{,}456$
+    & $16{,}875{,}520$ \\
+    
+    $2^{24}$ & $8$
+    & $8{,}192$
+    & $65{,}536$
+    & $33{,}555{,}456$
+    & $16{,}842{,}752$ \\
+    
+    $2^{24}$ & $12$
+    & $4{,}096$
+    & $49{,}152$
+    & $33{,}555{,}456$
+    & $16{,}826{,}368$ \\
+    
+    $2^{24}$ & $24$
+    & $2{,}048$
+    & $49{,}152$
+    & $33{,}555{,}456$
+    & $16{,}826{,}368$ \\
+    
+    \hline
+\end{tabular}
+\caption{Total field elements committed to for $n=2^{10}$ in standard and virtualized pushforward LogUp*.}
+\label{tab:commitment-sizes}
+\end{table}
+\FloatBarrier
+
+\subsection{Related Work}
+
+\paragraph{LogUp and LogUp*.}
+
+LogUp~\cite{cryptoeprint:2022/1530} is a lookup argument that uses logarithmic-derivative 
+identities to prove multiset membership relations. It may be optimized with GKR~\cite{cryptoeprint:2023/1284}
+to reduce the commitment cost of auxiliary polynomials when proving rational sum identities. 
+LogUp*~\cite{cryptoeprint:2025/946} is a variant of LogUp that applies the pushforward-pullback 
+duality \(\langle I_{*}A, B\rangle = \langle A, I^{*}B\rangle\) to prove indexed 
+lookup relations. Unlike LogUp, which reduces claimed evaluations on the MLEs of indices to those on the 
+MLEs of the table-reads, LogUp* reverses this order, reducing evaluation claims on the table-reads to those 
+on the indices. In addition, LogUp* requires a proof of evaluation of the MLE of the pushforward vector 
+\(Y=I_*\operatorname{eq}_r\).
+
+Unlike the table \(T\) and index map \(I\), which are known to the prover in advance, the pushforward \(Y\) is 
+defined in terms of a transcript-derived challenge \(r\), and therefore must be committed to in the 
+online portion of the protocol. This work aims to address this online commitment cost to \(Y\).
+
+\paragraph{TaSSLE}
+
+TaSSLE~\cite{cryptoeprint:2024/1075} exploits tensor-decomposition of tables to reduce commitment cost 
+in logarithmic-derivative lookup arguments. TaSSLE predates LogUp* and focuses on the original LogUp
+protocol. As a result, it does not discuss the online pushforward commitment cost in LogUp*. 
+Moreover, TaSSLE targets the structure and commitment cost of the queried table, whereas this work 
+targets the transcript-dependent LogUp* pushforward commitment. That said, the optimizations described 
+in TaSSLE are compatible with ours.
+
+\paragraph{MulPerm}
+
+
+MulPerm~\cite{cryptoeprint:2025/1850} considers lookup maps via the relation \(R_\rho\) and its indicator 
+\(L_\rho(\mathbf{x}, \mathbf{y})\)
+
+\[
+R_\rho = \{(\mathbf{x}, \mathbf{y}) : \rho(\mathbf{x}) = \mathbf{y} \}
+\qquad
+L_\rho(\mathbf{x}, \mathbf{y}) =
+\begin{cases}
+1 & (\mathbf{x}, \mathbf{y}) \in R_\rho \\
+0 & (\mathbf{x}, \mathbf{y}) \notin R_\rho
+\end{cases}
+\]
+
+Membership in \(R_\rho\) is expressed by the lookup identity
+\[
+\sum_{y\in\{0,1\}^{\kappa}} f(y)\,L_\rho(x,y)=g(x)
+\qquad\forall x\in\{0,1\}^{\mu}.
+\]
+Then, with \(\widetilde{\operatorname{eq}}_\alpha\) defined by verifier supplied challenge 
+\(\alpha\in\mathbb{F}^{\mu}\) yields the sumcheck identity (Equation~18)
+\[
+\sum_{x\in\{0,1\}^{\mu}}
+\widetilde{\operatorname{eq}}_\alpha(x)\,g(x)
+=
+\sum_{x\in\{0,1\}^{\mu}}
+\sum_{y\in\{0,1\}^{\kappa}}
+\widetilde{\operatorname{eq}}_\alpha(x)\,f(y)\,\widetilde{L}_\rho(x,y).
+\]
+
+\paragraph{Shout}
+
+The Shout PIOP~\cite{cryptoeprint:2025/105} is a memory-checking argument 
+for proving that a read-only memory \(Val\) was accessed according to 
+read-access pattern \(ra\) to produce read values \(rv\).
+The MLE \(\widetilde{ra}\) is that of a matrix whose rows are one-hot encodings of the 
+indices at which elements of \(Val\) were accessed.
+
+\[
+\widetilde{rv}(r') = 
+\sum_{k \in \{0,1\}^{\log N},\, j \in \{0,1\}^{\log T}}
+\widetilde{\operatorname{eq}}(r', j) \cdot 
+\widetilde{ra}(k, j) \cdot 
+\widetilde{Val}(k)
+\]
+
+Parameter \(d\) controls a tensor decomposition of the rows of \(ra\), so that the prover commits to 
+\(d\) smaller polynomials \(\widetilde{ra}_i\) in place of a single \(\widetilde{ra}\).
+
+\[
+\widetilde{rv}(r') = 
+\sum_{k=(k_1, \ldots, k_d) \in (\{0,1\}^{\log N / d})^d,\, j \in \{0,1\}^{\log T}}
+\widetilde{\operatorname{eq}}(r', j) \cdot 
+\left( \prod_{i=0}^{d-1} \widetilde{ra}_i(k_i, j) \right) \cdot 
+\widetilde{Val}(k)
+\]
+
+When the read-access pattern is not committed in preprocessing, 
+one-hotness of the \(ra\) rows (or \(ra_i\) if \(d>1\)) must also be checked
+via sumchecks for Hamming weight one
+\[
+1
+=
+\sum_{k \in \{0,1\}^{\log K}}
+\widetilde{\operatorname{ra}}
+\left(
+k,
+r'_{\mathrm{cycle}}
+\right)
+\]
+and booleanity
+\[
+0
+=
+\sum_{\substack{
+k \in \{0,1\}^{\log K} \\
+j \in \{0,1\}^{\log T}
+}}
+\widetilde{\operatorname{eq}}(r,k)\,
+\widetilde{\operatorname{eq}}(r',j)\,
+\left(
+\widetilde{\operatorname{ra}}(k,j)^2
+-
+\widetilde{\operatorname{ra}}(k,j)
+\right).
+\]
+Shout supplies the tensorized one-hot read-check representation; our additional step is to reuse that 
+representation to satisfy the separate \(I\)-evaluation claims required by LogUp*, thereby eliminating the 
+independent commitments to both \(I\) and the transcript-derived pushforward.
+
+\subsection{Preliminaries}
+
+\paragraph{Multilinear Polynomials}
+
+A multilinear polynomial is a multivariate polynomial that is linear in each variable. 
+The multilinear equality polynomial is defined as
+
+$$
+\operatorname{eq}(y_0, \dots, y_{k-1}, x_0, \dots, x_{k-1}) = \prod_{i=0}^{k-1} \left(
+    y_i x_i + (1 - y_i)(1 - x_i)
+\right) 
+$$
+
+And evaluates to $1$ if $x=y$, otherwise $0$. For a table $T \in \mathbb{F}^{2^k}$ and $x,y\in\{0,1\}^k$, its 
+multilinear extension is 
+
+$$
+\widetilde{t}(x) = \sum_{y \in \{0,1\}^k} \widetilde{\operatorname{eq}}(y, x) \cdot T[y]
+$$
+
+The evaluation of a multilinear extension $\widetilde{t}(x)$ at a point $\alpha\in\mathbb{F}^k$ is
+
+$$
+\widetilde{t}(\alpha) = \sum_{y \in \{0,1\}^k} \widetilde{\operatorname{eq}}(\alpha, y) \cdot \widetilde{t}(y)
+$$
+
+
+
+\paragraph{LogUp, LogUp*}
+
+We recount the pushforward-pullback duality 
+from LogUp*~\cite{cryptoeprint:2025/946}. Let $n=2^\nu$ and $m=2^\mu$. Let $A$ be a field-valued
+function on $[n] = \{0, \ldots, n-1\}$, and $B$ on 
+$[m] = \{0, \ldots, m-1\}$. The index map $I$ is defined
+$I: [n] \rightarrow [m]$. 
+
+Define the pullback of $B$ on $I$ as
+
+\[
+I^{*}B[i] = B[I[i]],
+\]
+
+And the pushforward of $A$ on $I$ as
+
+\[
+I_{*}A[j] = \sum_{i\,:\,I[i]=j} A[i]
+\]
+
+The pullback and pushforward are dual (Lemma~1~\cite{cryptoeprint:2025/946}).
+
+\[
+\langle I_{*}A, B\rangle = \langle A, I^{*}B\rangle
+\]
+
+Consider the table $T$, index map $I$, pushforward $Y$ of $X$, 
+random challenge $c$.
+By Lemma~2~\cite{cryptoeprint:2025/946}, for committed $Y$, random challenge
+$c$, the equality below implies the claim $Y = I_*X$ with soundness error 
+$\frac{n + m}{|\mathbb{F}|}$
+
+\[
+\sum_{0\le i<n}\frac{X[i]}{c-I[i]} = \sum_{0\le j<m}\frac{Y[j]}{c-j}
+\]
+
+Translating to the setting of the LogUp-GKR 
+protocol~\cite{cryptoeprint:2023/1284}, let \(X = \operatorname{eq}_r\). The prover 
+commits to \(I\), \(T\), \(I_*\operatorname{eq}_r\), then claims the pullback evaluation 
+\(\widetilde{I^*T}(r) = e\) for \(r\in\mathbb{F}^\nu\). The validity of the pushforward is proven 
+by invoking GKR to enforce the rational sum identity below,
+reducing to evaluation claims \(\widetilde{I}(\beta)\), \(\widetilde{Y}(\alpha)\), \(\widetilde{\operatorname{eq}}_r(\beta)\)
+for \(\beta\in\mathbb{F}^\nu\) and \(\alpha\in\mathbb{F}^\mu\). 
+
+\[
+\sum_{0\le i<n}\frac{\operatorname{eq}_r[i]}{c-I[i]} = \sum_{0\le j<m}\frac{I_*\operatorname{eq}_r[j]}{c-j}
+\]
+
+The eval claim \(e\) is proven with a sumcheck of the form
+\(\langle T, I_*\operatorname{eq}_r \rangle - e = 0\), reducing to evaluation claims 
+on \(\widetilde{Y}(\alpha')\), \(\widetilde{T}(\alpha')\) for \(\alpha'\in\mathbb{F}^\mu\). 
+The prover opens commitments with a batched proof of evaluation claims
+\(\widetilde{I}(\beta)\), \(\widetilde{Y}(\alpha)\), \(\widetilde{Y}(\alpha')\), \(\widetilde{T}(\alpha')\).
+Doing so proves the evaluation claim on the pullback \(I^*T\) while avoiding
+commitment to the full pullback, by taking advantage of the
+pullback-pushforward duality.

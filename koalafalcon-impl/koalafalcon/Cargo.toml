@@ -1,0 +1,32 @@
+[package]
+name = "koalafalcon"
+version = "0.1.0"
+edition = "2024"
+autoexamples = false
+
+[features]
+default = []
+profile = ["dep:tracing", "dep:tracing-profile"]
+
+[dependencies]
+rand = "0.9"
+p3-field = "0.6.1"
+p3-koala-bear = "0.6.1"
+p3-symmetric = "0.6.1"
+num-complex = "0.4.6"
+clap = { version = "4.6.2", features = ["derive"] }
+tracing = { version = "0.1.44", optional = true }
+tracing-profile = { version = "0.10.11", features = ["perfetto"], optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+fn-dsa = "0.4"
+rand_core = { version = "0.6", features = ["getrandom"] }
+
+[[example]]
+name = "signature"
+path = "examples/signature.rs"
+
+[[example]]
+name = "fn_dsa_signature"
+path = "examples/fn_dsa_signature.rs"

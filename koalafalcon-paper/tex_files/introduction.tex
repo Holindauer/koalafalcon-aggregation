@@ -1,0 +1,130 @@
+\section{Introduction}
+
+SNARK-based signature aggregation refers to proving knowledge of the correct 
+verification of many signatures in a single SNARK proof. Given the quantum threat, 
+it is desirable to update the massively deployed elliptic curve based cryptosystems to 
+quantum resistant alternatives. Despite post-quantum solutions to signatures and SNARKs 
+both being available, there is still debate as to how best to scalably aggregate signatures 
+in Ethereum. 
+
+Falcon has emerged as a promising post-quantum alternative to existing elliptic curve 
+signatures. Falcon is lattice-based and prized for its compactness and speed. Though, 
+its verification algorithm introduces multiple challenges regarding the establishment of 
+a computational representation amenable to arithmetization for SNARKs. Firstly, Falcon 
+signature arithmetic relies upon polynomial rings with coefficients modulo $q=12289$. The 
+field $\mathbb{F}_q$ is significantly smaller than those typical in modern hash-based 
+SNARKs (e.g. KoalaBear). Encoding $\mathbb{F}_q$ arithmetic within the KoalaBear prime 
+field requires non-native arithmetic, a process in which foreign field arithmetic is 
+simulated in the native field. Doing so adds extra constraints for every foreign field 
+operation compared to operations over the native field. As well, the size of $\mathbb{F}_q$ is 
+less than $14$ bits, too small to permit Reed-Solomon encodings of the moderate witness 
+size $2^{14}$. As a result, encoding and commitment would need to be done over an extension field, 
+a performance degradation for polynomial commitments based on FRI. Furthermore, Falcon signature 
+verification also employs arithmetic over the integers for $\ell_2$ norm checks.  
+As a result, the SNARK must be capable of handling both integer and cyclotomic ring arithmetic 
+in addition to any non-native arithmetic.
+
+In this work we present KoalaFalcon, a variant of Falcon modified to work over the 
+KoalaBear prime modulus. Our primary modifications are to fix modulus $q$ to the 
+KoalaBear prime, and swap the hash function to Poseidon. This approach enables the 
+ring arithmetic component of KoalaFalcon signature verification to be arithmetized at the 
+coefficient level without non-native arithmetic for SNARKs defined over the KoalaBear 
+prime field. As a result, SNARK proofs of aggregate KoalaFalcon signatures may rely on much 
+of the same cryptographic infrastructure as existing hash-based SNARKs (e.g. LeanVM), 
+making them more easily incorporated into recursive hash-based SNARKs.
+
+We analyze how our modifications to Falcon affect the security of the resulting signature 
+scheme, arguing that our changes are amenable to the same style of argument employed by 
+CoreFalcon+, and retain similar security to the original Falcon scheme. The reasoning behind 
+this position argues that changing the modulus in CoreFalcon+ does not impose new consequences to 
+the applicability of the Rényi divergence based approach to the security reduction from CoreFalcon+ 
+forgery to $t\text{-}\mathcal{R}\text{-}\mathbf{ISIS}$ under the standard CoreFalcon+ approach to 
+parameterization. We define two parameter sets for KoalaFalcon achieving UF-CMA bit security estimates 
+of 117.98 and 256 respectively using these techniques. As well, we observe that our estimates remain 
+similar to the original Falcon scheme despite these changes, arguing why by analyzing the impact of the 
+parameter change on lattice reduction attacks.
+
+\subsection{Related Work}
+
+\paragraph{SNARKs} 
+
+SNARK proof systems prove and verify computational claims by combining an interactive oracle proof 
+(IOP) with a polynomial commitment scheme (PCS). They are made non-interactive by simulating 
+verifier responses with the Fiat-Shamir heuristic. In general, the design choices behind a 
+SNARK proof system can be roughly divided into those about \emph{arithmetization} and those 
+about the \emph{PCS}. Considerations of arithmetization revolve around how applications are 
+compiled into arithmetic circuits, and what IOPs are used to verify that a witness attests to the 
+correct execution of a computation. The PCS necessarily corresponds to how 
+arithmetization is performed, as the prover must make a binding commitment to the witness of 
+an arithmetized computation prior to any interaction. The commitment is later opened at a point 
+determined over the course of the IOP. The field of arithmetization must be compatible enough 
+with the PCS that this opening can be made in order for the soundness of the IOP to be established 
+with respect to the initial commitment. Non-native arithmetic is commonly used when applications are 
+defined over fields incompatible with the chosen field of arithmetization (a process where 
+arithmetic for a foreign field is simulated within the field of arithmetization).
+
+\paragraph{Arithmetic Hashes and Recursive SNARKs}
+
+Arithmetic hashes are hash functions designed specifically to be efficiently incorporated
+into arithmetic circuits. The best example being Poseidon~\cite{cryptoeprint:2019/458}, whose 
+permutation function consists entirely of arithmetic operations. Poseidon has become a standard 
+primitive in the construction of Recursive SNARKs, which refer to SNARK proof systems that partition 
+the full execution trace of computations too large to feasibly prove within a single proof,
+recursively proving those partitions. Proof recursion is achieved by starting with a proof 
+of the first partition, then in each recursive proof simultaneously proves the next partition 
+while verifying the previous in the same circuit.
+
+\paragraph{Primitive-Friendly SNARKs vs SNARK-Friendly Primitives}\label{friendliness} 
+
+SNARKs which prove the execution of cryptographic primitives that are not easily arithmetized 
+often utilize \emph{SNARK-Friendly} primitives, such as Poseidon. An alternative approach to the 
+non-native arithmetic problem is to use a \emph{Primitive-Friendly} SNARK. Examples include
+Binius~\cite{cryptoeprint:2023/1784},
+Flock~\cite{cryptoeprint:2026/1329}, and Labradoor~\cite{cryptoeprint:2022/1341}.
+Such schemes define arithmetization schemes that efficiently encode applications with
+special forms of arithmetic. Binius and Flock, for example, are especially efficient 
+at proving the execution of 
+binary circuits. 
+
+A downside of primitive-friendly SNARKs is their bespoke nature. When the proof system is designed 
+around a single arithmetization objective, it may become difficult to compose such proofs into larger 
+proof systems (e.g. recursive SNARKs) without the reintroduction of non-native arithmetic. For example, 
+if a primitive-friendly SNARK uses arithmetic incompatible with that of a SNARK-friendly hash,  
+it is not straightforward how to combine them into a unified protocol. As well, if the PCS of the 
+primitive-friendly SNARK uses arithmetic incompatible with that of the broader system, the task of 
+batching PCS proofs is also no longer straightforward. Such incompatibilities introduce additional 
+design and security considerations beyond those standard to composable proofs.
+
+\paragraph{SNARK-Based XMSS Signature Aggregation}
+
+Another approach to post-quantum signature aggregation is SNARK-based aggregation of XMSS 
+signatures ~\cite{cryptoeprint:2011/484}. The XMSS approach to signatures involves taking a 
+one-time signature and making it into a many-time signature by creating a Merkle root of 
+their public keys. An inclusion proof alongside a one-time signature 
+becomes a many-time signature, with aggregate verification provable with hash-based SNARKs 
+~\cite{10.62056/aey7qjp10}. SNARK-based aggregation of XMSS signatures suffer from large circuits 
+dominated by hashing. They are also stateful, requiring more considerations placed on the signer 
+to remain secure in practice. 
+
+\paragraph{Falcon Signature Aggregation with Labradoor}
+
+Labradoor~\cite{cryptoeprint:2022/1341} is a lattice-based SNARK for proving R1CS. 
+Recently, it has been used to prove Falcon signatures in aggregate 
+~\cite{cryptoeprint:2024/311} and serves as the most direct performance comparison to the 
+approach taken in this work.
+
+\subsection{Contributions}
+
+\begin{itemize}
+  \item A variant of CoreFalcon+ (KoalaFalcon) over the KoalaBear 
+  prime modulus using Poseidon for message hashes. We demonstrate the existence 
+  of parameters that retain provable security under the Rényi 
+  divergence approach to provable security. These parameters result 
+  in favorable hardness estimates via the core-SVP methodology, achieving a UF-CMA bit security of $117.98$ and 
+  $256$ bits for $\lambda = 128$ and $\lambda = 256$ respectively.
+  We argue that aside from two conditions on the algebraic structure implied 
+  by concrete parameter choices, and an adherence to a lower bound on the 
+  standard deviation for signature sampling, the reduction applies for 
+  general moduli.
+
+\end{itemize}
